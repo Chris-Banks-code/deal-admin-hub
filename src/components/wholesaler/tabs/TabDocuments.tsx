@@ -24,8 +24,8 @@ const DOC_TYPES = [
   { key: 'price_list', label: 'Price List', required: false },
 ];
 
-const FileUpload = ({ docType, label, required, file, existingUrl, onFileSelect, onRemove }: {
-  docType: string; label: string; required: boolean; file: File | null;
+const FileUpload = ({ label, required, file, existingUrl, onFileSelect, onRemove }: {
+  label: string; required: boolean; file: File | null;
   existingUrl?: string; onFileSelect: (f: File) => void; onRemove: () => void;
 }) => {
   const ref = useRef<HTMLInputElement>(null);
