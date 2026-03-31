@@ -20,29 +20,41 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ totalOrders: 0, pending: 0, revenue: 0, activeAgents: 0 });
   const [recentDeals, setRecentDeals] = useState<any[]>([]);
 
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [dealsRes, agentsRes] = await Promise.all([
+        supabase.from('deals').select('*').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
+      ]);
+
+      const deals = dealsRes.data || [];
+      const totalOrders = deals.length;
+      const pending = deals.filter(d => d.status === 'pending_admin' || d.status === 'pending').length;
+      const revenue = deals.filter(d => d.status === 'completed').reduce((sum, d) => sum + (d.deal_value || 0), 0);
+      const activeAgents = agentsRes.data?.length || 0;
+
+      setStats({ totalOrders, pending, revenue, activeAgents });
+      setRecentDeals(deals.slice(0, 5));
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [dealsRes, agentsRes] = await Promise.all([
-          supabase.from('deals').select('*').order('created_at', { ascending: false }),
-          supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
-        ]);
-
-        const deals = dealsRes.data || [];
-        const totalOrders = deals.length;
-        const pending = deals.filter(d => d.status === 'pending_admin' || d.status === 'pending').length;
-        const revenue = deals.filter(d => d.status === 'completed').reduce((sum, d) => sum + (d.deal_value || 0), 0);
-        const activeAgents = agentsRes.data?.length || 0;
-
-        setStats({ totalOrders, pending, revenue, activeAgents });
-        setRecentDeals(deals.slice(0, 5));
-      } catch (err) {
-        console.error(err);
-      }
-      setLoading(false);
-    };
     fetchData();
+
+    const channel = supabase
+      .channel('dashboard-deals')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleApprove = async (dealId: string) => {
