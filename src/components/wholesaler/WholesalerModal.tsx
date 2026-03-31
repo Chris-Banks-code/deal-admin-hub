@@ -30,7 +30,7 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
   const [form, setForm] = useState<WholesalerFormData>(emptyWholesalerForm);
   const [saving, setSaving] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File | null>>({});
-  const [existingBranches, setExistingBranches] = useState<any[]>([]);
+  const [, setExistingBranches] = useState<any[]>([]);
 
   useEffect(() => {
     if (open) {
