@@ -16,49 +16,160 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          account_name: string | null
+          account_number: string | null
+          added_by_admin_id: string | null
           address: string | null
           assigned_agent_id: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          bulk_discount_available: boolean | null
+          business_license_url: string | null
+          business_registration_number: string | null
+          certifications: string | null
           client_type: string
+          cold_storage: boolean | null
+          company_email: string | null
           company_name: string
+          company_type: string | null
+          company_website: string | null
           contact_person: string
           created_at: string | null
+          credit_period: number | null
+          credit_references: string | null
+          default_commission_rate: number | null
+          delivery_coverage_areas: string | null
+          delivery_options: string | null
           id: string
+          incorporation_cert_url: string | null
           latitude: number | null
           longitude: number | null
+          minimum_order_value: number | null
+          no_mov: boolean | null
           notes: string | null
+          operating_hours: Json | null
+          payment_terms: string | null
           phone: string
+          price_list_url: string | null
+          product_catalog_url: string | null
+          product_categories: string[] | null
+          secondary_contact_name: string | null
+          secondary_contact_phone: string | null
+          special_services: string | null
           status: string | null
+          storage_description: string | null
+          storage_facilities: boolean | null
+          tax_certificate_url: string | null
+          tax_id: string | null
           updated_at: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by_admin_id: string | null
+          year_established: number | null
         }
         Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          added_by_admin_id?: string | null
           address?: string | null
           assigned_agent_id?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          bulk_discount_available?: boolean | null
+          business_license_url?: string | null
+          business_registration_number?: string | null
+          certifications?: string | null
           client_type: string
+          cold_storage?: boolean | null
+          company_email?: string | null
           company_name: string
+          company_type?: string | null
+          company_website?: string | null
           contact_person: string
           created_at?: string | null
+          credit_period?: number | null
+          credit_references?: string | null
+          default_commission_rate?: number | null
+          delivery_coverage_areas?: string | null
+          delivery_options?: string | null
           id?: string
+          incorporation_cert_url?: string | null
           latitude?: number | null
           longitude?: number | null
+          minimum_order_value?: number | null
+          no_mov?: boolean | null
           notes?: string | null
+          operating_hours?: Json | null
+          payment_terms?: string | null
           phone: string
+          price_list_url?: string | null
+          product_catalog_url?: string | null
+          product_categories?: string[] | null
+          secondary_contact_name?: string | null
+          secondary_contact_phone?: string | null
+          special_services?: string | null
           status?: string | null
+          storage_description?: string | null
+          storage_facilities?: boolean | null
+          tax_certificate_url?: string | null
+          tax_id?: string | null
           updated_at?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by_admin_id?: string | null
+          year_established?: number | null
         }
         Update: {
+          account_name?: string | null
+          account_number?: string | null
+          added_by_admin_id?: string | null
           address?: string | null
           assigned_agent_id?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          bulk_discount_available?: boolean | null
+          business_license_url?: string | null
+          business_registration_number?: string | null
+          certifications?: string | null
           client_type?: string
+          cold_storage?: boolean | null
+          company_email?: string | null
           company_name?: string
+          company_type?: string | null
+          company_website?: string | null
           contact_person?: string
           created_at?: string | null
+          credit_period?: number | null
+          credit_references?: string | null
+          default_commission_rate?: number | null
+          delivery_coverage_areas?: string | null
+          delivery_options?: string | null
           id?: string
+          incorporation_cert_url?: string | null
           latitude?: number | null
           longitude?: number | null
+          minimum_order_value?: number | null
+          no_mov?: boolean | null
           notes?: string | null
+          operating_hours?: Json | null
+          payment_terms?: string | null
           phone?: string
+          price_list_url?: string | null
+          product_catalog_url?: string | null
+          product_categories?: string[] | null
+          secondary_contact_name?: string | null
+          secondary_contact_phone?: string | null
+          special_services?: string | null
           status?: string | null
+          storage_description?: string | null
+          storage_facilities?: boolean | null
+          tax_certificate_url?: string | null
+          tax_id?: string | null
           updated_at?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by_admin_id?: string | null
+          year_established?: number | null
         }
         Relationships: [
           {
