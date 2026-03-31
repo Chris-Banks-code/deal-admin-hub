@@ -73,7 +73,7 @@ export const TabDocuments = ({ form, updateForm, uploadedFiles, setUploadedFiles
         {DOC_TYPES.map(doc => (
           <FileUpload
             key={doc.key}
-            docType={doc.key}
+            
             label={doc.label}
             required={doc.required}
             file={uploadedFiles[doc.key] || null}
