@@ -233,7 +233,7 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
         if (error) throw error;
         wholesalerId = editingWholesaler.id;
       } else {
-        const { data, error } = await supabase.from('clients').insert(clientData).select('id').single();
+        const { data, error } = await supabase.from('clients').insert(clientData as any).select('id').single();
         if (error) throw error;
         wholesalerId = data.id;
       }
