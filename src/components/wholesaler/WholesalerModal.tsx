@@ -5,7 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { WholesalerFormData, emptyWholesalerForm, BranchForm } from './WholesalerFormTypes';
+import { WholesalerFormData, emptyWholesalerForm } from './WholesalerFormTypes';
 import { TabCompanyInfo } from './tabs/TabCompanyInfo';
 import { TabContacts } from './tabs/TabContacts';
 import { TabLocation } from './tabs/TabLocation';
