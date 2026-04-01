@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/formatters';
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, BarChart3, Users, Trophy } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, BarChart, Bar, Area, AreaChart,
 } from 'recharts';
 
