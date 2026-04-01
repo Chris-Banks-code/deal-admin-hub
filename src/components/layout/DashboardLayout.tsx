@@ -10,12 +10,14 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <TopHeader title={title} />
-          <main className="flex-1 p-4 lg:p-6 overflow-auto">
-            {children}
+          <main className="flex-1 p-4 lg:p-6 xl:p-8 overflow-auto">
+            <div className="max-w-[1400px] mx-auto">
+              {children}
+            </div>
           </main>
         </div>
       </div>
