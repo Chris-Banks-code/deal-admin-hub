@@ -13,7 +13,7 @@ import {
   PieChart, Pie, Cell, Legend, BarChart, Bar, Area, AreaChart,
 } from 'recharts';
 
-const COLORS = ['hsl(39 45% 58%)', 'hsl(160 84% 39%)', 'hsl(0 84% 60%)', 'hsl(210 35% 16%)', 'hsl(270 50% 60%)', 'hsl(38 92% 50%)'];
+
 
 const Analytics = () => {
   const [loading, setLoading] = useState(true);

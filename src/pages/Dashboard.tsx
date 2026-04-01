@@ -108,7 +108,7 @@ const Dashboard = () => {
                           {card.trend}
                         </span>
                       )}
-                      {card.badge && card.value > 0 && (
+                      {card.badge && Number(card.value) > 0 && (
                         <Badge className="bg-warning/15 text-warning border-warning/20 text-[10px] font-semibold">
                           Needs review
                         </Badge>
