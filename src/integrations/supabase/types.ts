@@ -20,7 +20,10 @@ export type Database = {
           account_number: string | null
           added_by_admin_id: string | null
           address: string | null
+          admin_notes: string | null
           assigned_agent_id: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
           bank_branch: string | null
           bank_name: string | null
           bulk_discount_available: boolean | null
@@ -29,6 +32,7 @@ export type Database = {
           certifications: string | null
           client_type: string
           cold_storage: boolean | null
+          cold_storage_available: boolean | null
           company_email: string | null
           company_name: string
           company_type: string | null
@@ -36,12 +40,14 @@ export type Database = {
           contact_person: string
           created_at: string | null
           credit_period: number | null
+          credit_period_days: number | null
           credit_references: string | null
           default_commission_rate: number | null
           delivery_coverage_areas: string | null
           delivery_options: string | null
           id: string
           incorporation_cert_url: string | null
+          incorporation_certificate_url: string | null
           latitude: number | null
           longitude: number | null
           minimum_order_value: number | null
@@ -54,11 +60,14 @@ export type Database = {
           product_catalog_url: string | null
           product_categories: string[] | null
           secondary_contact_name: string | null
+          secondary_contact_person: string | null
           secondary_contact_phone: string | null
           special_services: string | null
           status: string | null
           storage_description: string | null
           storage_facilities: boolean | null
+          storage_facilities_available: boolean | null
+          storage_facilities_description: string | null
           tax_certificate_url: string | null
           tax_id: string | null
           updated_at: string | null
@@ -72,7 +81,10 @@ export type Database = {
           account_number?: string | null
           added_by_admin_id?: string | null
           address?: string | null
+          admin_notes?: string | null
           assigned_agent_id?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
           bank_branch?: string | null
           bank_name?: string | null
           bulk_discount_available?: boolean | null
@@ -81,6 +93,7 @@ export type Database = {
           certifications?: string | null
           client_type: string
           cold_storage?: boolean | null
+          cold_storage_available?: boolean | null
           company_email?: string | null
           company_name: string
           company_type?: string | null
@@ -88,12 +101,14 @@ export type Database = {
           contact_person: string
           created_at?: string | null
           credit_period?: number | null
+          credit_period_days?: number | null
           credit_references?: string | null
           default_commission_rate?: number | null
           delivery_coverage_areas?: string | null
           delivery_options?: string | null
           id?: string
           incorporation_cert_url?: string | null
+          incorporation_certificate_url?: string | null
           latitude?: number | null
           longitude?: number | null
           minimum_order_value?: number | null
@@ -106,11 +121,14 @@ export type Database = {
           product_catalog_url?: string | null
           product_categories?: string[] | null
           secondary_contact_name?: string | null
+          secondary_contact_person?: string | null
           secondary_contact_phone?: string | null
           special_services?: string | null
           status?: string | null
           storage_description?: string | null
           storage_facilities?: boolean | null
+          storage_facilities_available?: boolean | null
+          storage_facilities_description?: string | null
           tax_certificate_url?: string | null
           tax_id?: string | null
           updated_at?: string | null
@@ -124,7 +142,10 @@ export type Database = {
           account_number?: string | null
           added_by_admin_id?: string | null
           address?: string | null
+          admin_notes?: string | null
           assigned_agent_id?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
           bank_branch?: string | null
           bank_name?: string | null
           bulk_discount_available?: boolean | null
@@ -133,6 +154,7 @@ export type Database = {
           certifications?: string | null
           client_type?: string
           cold_storage?: boolean | null
+          cold_storage_available?: boolean | null
           company_email?: string | null
           company_name?: string
           company_type?: string | null
@@ -140,12 +162,14 @@ export type Database = {
           contact_person?: string
           created_at?: string | null
           credit_period?: number | null
+          credit_period_days?: number | null
           credit_references?: string | null
           default_commission_rate?: number | null
           delivery_coverage_areas?: string | null
           delivery_options?: string | null
           id?: string
           incorporation_cert_url?: string | null
+          incorporation_certificate_url?: string | null
           latitude?: number | null
           longitude?: number | null
           minimum_order_value?: number | null
@@ -158,11 +182,14 @@ export type Database = {
           product_catalog_url?: string | null
           product_categories?: string[] | null
           secondary_contact_name?: string | null
+          secondary_contact_person?: string | null
           secondary_contact_phone?: string | null
           special_services?: string | null
           status?: string | null
           storage_description?: string | null
           storage_facilities?: boolean | null
+          storage_facilities_available?: boolean | null
+          storage_facilities_description?: string | null
           tax_certificate_url?: string | null
           tax_id?: string | null
           updated_at?: string | null

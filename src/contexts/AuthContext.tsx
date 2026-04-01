@@ -48,19 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        const prof = await fetchProfile(session.user.id);
-        setProfile(prof);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    });
-
+    // First restore session from storage
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -69,6 +57,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(prof);
       }
       setLoading(false);
+    });
+
+    // Then listen for subsequent auth changes (don't await inside callback)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        // Fire-and-forget to avoid deadlock
+        fetchProfile(session.user.id).then(prof => setProfile(prof));
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
