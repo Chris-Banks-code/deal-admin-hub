@@ -5,7 +5,13 @@ export const formatCurrency = (amount: number | null | undefined): string => {
 
 export const formatDate = (date: string | null | undefined): string => {
   if (!date) return '—';
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(date));
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(d);
+  } catch {
+    return '—';
+  }
 };
 
 export const formatPercent = (value: number | null | undefined): string => {
@@ -51,6 +57,7 @@ export const getRoleLabel = (role: string) => {
   }
 };
 
-export const getInitials = (name: string) => {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+export const getInitials = (name: string | null | undefined): string => {
+  if (!name) return '?';
+  return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2);
 };

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Search, Plus, Edit2, Trash2, Building2, MapPin, CheckCircle, Store } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +46,7 @@ const ClientsPage = () => {
   const [showWholesalerModal, setShowWholesalerModal] = useState(false);
   const [editingWholesaler, setEditingWholesaler] = useState<any>(null);
   const [verificationFilter, setVerificationFilter] = useState('all');
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -67,6 +69,9 @@ const ClientsPage = () => {
       return matchSearch && matchTab && matchVerification;
     });
   }, [clients, search, tab, verificationFilter]);
+
+  const retailerCount = useMemo(() => clients.filter(c => c.client_type === 'retailer').length, [clients]);
+  const wholesalerCount = useMemo(() => clients.filter(c => c.client_type === 'wholesaler').length, [clients]);
 
   const getAgentName = (id: string | null) => agents.find(a => a.id === id)?.full_name || '—';
 
@@ -120,10 +125,12 @@ const ClientsPage = () => {
     fetchData();
   };
 
-  const deleteClient = async (id: string) => {
-    const { error } = await supabase.from('clients').delete().eq('id', id);
-    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
+  const deleteClient = async () => {
+    if (!deletingClientId) return;
+    const { error } = await supabase.from('clients').delete().eq('id', deletingClientId);
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setDeletingClientId(null); return; }
     toast({ title: 'Client deleted' });
+    setDeletingClientId(null);
     fetchData();
   };
 
@@ -172,8 +179,8 @@ const ClientsPage = () => {
         <Tabs value={tab} onValueChange={v => { setTab(v); setVerificationFilter('all'); }}>
           <TabsList>
             <TabsTrigger value="all">All ({clients.length})</TabsTrigger>
-            <TabsTrigger value="retailer">Retailers ({clients.filter(c => c.client_type === 'retailer').length})</TabsTrigger>
-            <TabsTrigger value="wholesaler">Wholesalers ({clients.filter(c => c.client_type === 'wholesaler').length})</TabsTrigger>
+            <TabsTrigger value="retailer">Retailers ({retailerCount})</TabsTrigger>
+            <TabsTrigger value="wholesaler">Wholesalers ({wholesalerCount})</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -233,7 +240,7 @@ const ClientsPage = () => {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}><Edit2 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteClient(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingClientId(c.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -284,6 +291,19 @@ const ClientsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletingClientId} onOpenChange={open => { if (!open) setDeletingClientId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>This will permanently delete the client and all associated data. This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Wholesaler Registration Modal */}
       <WholesalerModal

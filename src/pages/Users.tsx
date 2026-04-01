@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Search, Plus, Edit2, UserX, UserCheck, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +40,7 @@ const UsersPage = () => {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [form, setForm] = useState<UserForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const supervisors = useMemo(() => users.filter(u => u.role === 'supervisor'), [users]);
 
@@ -105,24 +107,30 @@ const UsersPage = () => {
         setSaving(false);
         return;
       }
-      // Create auth user - the trigger will create profile
-      const { error } = await supabase.auth.signUp({
-        email: form.email.trim(),
-        password: form.password,
-        options: {
-          data: {
-            full_name: form.full_name.trim(),
-            phone: form.phone.trim(),
-            role: form.role,
-          },
+      // Use Edge Function — keeps user creation server-side with Admin API,
+      // preventing anyone from calling the public signUp endpoint directly.
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
         },
+        body: JSON.stringify({
+          email: form.email.trim(),
+          password: form.password,
+          full_name: form.full_name.trim(),
+          phone: form.phone.trim(),
+          role: form.role,
+        }),
       });
-      if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setSaving(false); return; }
+      const result = await res.json();
+      if (!res.ok) { toast({ title: 'Error', description: result.error, variant: 'destructive' }); setSaving(false); return; }
       toast({ title: 'User created' });
     }
     setSaving(false);
     setShowModal(false);
-    setTimeout(fetchUsers, 1000);
+    fetchUsers();
   };
 
   const toggleStatus = async (user: any) => {
@@ -133,10 +141,23 @@ const UsersPage = () => {
     fetchUsers();
   };
 
-  const deleteUser = async (userId: string) => {
-    const { error } = await supabase.from('profiles').delete().eq('id', userId);
-    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
+  const deleteUser = async () => {
+    if (!deletingUserId) return;
+    // Use Edge Function — deletes the auth user via Admin API, which cascades
+    // to the profiles row. Deleting only the profile row left a zombie auth account.
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({ userId: deletingUserId }),
+    });
+    const result = await res.json();
+    if (!res.ok) { toast({ title: 'Error', description: result.error, variant: 'destructive' }); setDeletingUserId(null); return; }
     toast({ title: 'User deleted' });
+    setDeletingUserId(null);
     fetchUsers();
   };
 
@@ -215,7 +236,7 @@ const UsersPage = () => {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStatus(user)}>
                             {user.status === 'active' ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteUser(user.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingUserId(user.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -289,6 +310,18 @@ const UsersPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!deletingUserId} onOpenChange={open => { if (!open) setDeletingUserId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>This will permanently delete the user's account and profile. They will no longer be able to log in. This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };

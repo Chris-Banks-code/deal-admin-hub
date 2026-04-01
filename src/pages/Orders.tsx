@@ -34,6 +34,7 @@ const Orders = () => {
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(25);
   const [adminNotes, setAdminNotes] = useState('');
+  const [bulkRejecting, setBulkRejecting] = useState(false);
 
   const fetchDeals = async () => {
     setLoading(true);
@@ -44,6 +45,9 @@ const Orders = () => {
   };
 
   useEffect(() => { fetchDeals(); }, []);
+
+  // Reset to page 0 whenever filters change so the user doesn't land on an empty page
+  useEffect(() => { setPage(0); }, [search, statusFilter]);
 
   const filtered = useMemo(() => {
     return deals.filter(d => {
@@ -79,7 +83,27 @@ const Orders = () => {
   };
 
   const confirmReject = async () => {
-    if (!rejectingDealId || !rejectReason.trim()) return;
+    if (!rejectReason.trim()) return;
+
+    if (bulkRejecting) {
+      const ids = Array.from(selectedIds);
+      const results = await Promise.all(ids.map(id =>
+        supabase.from('deals').update({ status: 'rejected', rejection_reason: rejectReason.trim() }).eq('id', id)
+      ));
+      const failed = results.filter(r => r.error).length;
+      if (failed > 0) {
+        toast({ title: 'Error', description: `${failed} order(s) failed to reject`, variant: 'destructive' });
+      } else {
+        toast({ title: `${ids.length} order(s) rejected` });
+      }
+      setSelectedIds(new Set());
+      setBulkRejecting(false);
+      setShowRejectDialog(false);
+      fetchDeals();
+      return;
+    }
+
+    if (!rejectingDealId) return;
     const { error } = await supabase.from('deals').update({ status: 'rejected', rejection_reason: rejectReason.trim() }).eq('id', rejectingDealId);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Order rejected' });
@@ -125,6 +149,30 @@ const Orders = () => {
 
   const isPending = (status: string | null) => status === 'pending' || status === 'pending_admin';
 
+  const exportCSV = () => {
+    const headers = ['Deal #', 'Retailer', 'Wholesaler', 'Product', 'Amount', 'Agent Commission', 'Status', 'Date'];
+    const rows = filtered.map(d => [
+      d.deal_number ?? '',
+      d.retailer_name ?? '',
+      d.wholesaler_name ?? '',
+      d.has_multiple_products ? `${d.total_items ?? 0} Products` : (d.product_name ?? ''),
+      d.deal_value ?? 0,
+      d.agent_commission ?? 0,
+      d.status ?? '',
+      formatDate(d.created_at),
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <DashboardLayout title="Orders">
       <div className="space-y-4">
@@ -144,7 +192,7 @@ const Orders = () => {
             </SelectContent>
           </Select>
           {isAdmin && (
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
               <Download className="h-4 w-4" /> Export CSV
             </Button>
           )}
@@ -170,13 +218,28 @@ const Orders = () => {
         {isAdmin && selectedIds.size > 0 && (
           <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
             <span className="text-sm font-medium">{selectedIds.size} selected</span>
-            <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground" onClick={() => {
-              selectedIds.forEach(id => handleApprove(id));
+            <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground" onClick={async () => {
+              const ids = Array.from(selectedIds);
+              const results = await Promise.all(ids.map(id =>
+                supabase.from('deals').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id)
+              ));
+              const failed = results.filter(r => r.error).length;
+              if (failed > 0) {
+                toast({ title: 'Error', description: `${failed} order(s) failed to approve`, variant: 'destructive' });
+              } else {
+                toast({ title: `${ids.length} order(s) approved` });
+              }
               setSelectedIds(new Set());
+              fetchDeals();
             }}>
               Approve ({selectedIds.size})
             </Button>
-            <Button size="sm" variant="destructive">Reject ({selectedIds.size})</Button>
+            <Button size="sm" variant="destructive" onClick={() => {
+              // Open reject dialog for bulk; reuse single-reject dialog by setting a sentinel
+              setBulkRejecting(true);
+              setRejectReason('');
+              setShowRejectDialog(true);
+            }}>Reject ({selectedIds.size})</Button>
           </div>
         )}
 
@@ -395,9 +458,9 @@ const Orders = () => {
                 <CardContent className="text-sm space-y-2">
                   <div className="flex justify-between"><span>Total Order Value</span><span className="font-semibold">{formatCurrency(selectedDeal.deal_value)}</span></div>
                   <Separator />
-                  <div className="flex justify-between"><span className="text-muted-foreground">Agent Commission (55%)</span><span>{formatCurrency(selectedDeal.agent_commission)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Supervisor Override (7%)</span><span>{formatCurrency(selectedDeal.supervisor_commission)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Op Manager Override (4%)</span><span>{formatCurrency(selectedDeal.operation_manager_commission)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Agent Commission{selectedDeal.deal_value ? ` (${((selectedDeal.agent_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.agent_commission)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Supervisor Override{selectedDeal.deal_value ? ` (${((selectedDeal.supervisor_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.supervisor_commission)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Op Manager Override{selectedDeal.deal_value ? ` (${((selectedDeal.operation_manager_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.operation_manager_commission)}</span></div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Company Profit</span>

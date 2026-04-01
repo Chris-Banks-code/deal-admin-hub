@@ -48,12 +48,18 @@ const Analytics = () => {
   const agents = profiles.filter(p => p.role === 'agent' && p.status === 'active');
 
   const revenueOverTime = useMemo(() => {
+    // Key by ISO date string so entries sort correctly, then format for display
     const map = new Map<string, number>();
     completedDeals.forEach(d => {
-      const date = new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      map.set(date, (map.get(date) || 0) + (d.deal_value || 0));
+      const isoDay = d.created_at.slice(0, 10); // "2024-03-28"
+      map.set(isoDay, (map.get(isoDay) || 0) + (d.deal_value || 0));
     });
-    return Array.from(map.entries()).map(([date, revenue]) => ({ date, revenue }));
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([isoDay, revenue]) => ({
+        date: new Date(isoDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        revenue,
+      }));
   }, [completedDeals]);
 
   const ordersByStatus = useMemo(() => {
@@ -68,10 +74,12 @@ const Analytics = () => {
   }, [filteredDeals]);
 
   const topAgents = useMemo(() => {
+    // Build O(1) lookup map first to avoid O(n×m) find() inside forEach
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
     const map = new Map<string, { name: string; revenue: number; orders: number; commission: number }>();
     completedDeals.forEach(d => {
-      const agent = profiles.find(p => p.id === d.agent_id);
-      const name = agent?.full_name || 'Unknown';
+      if (!d.agent_id) return;
+      const name = profileMap.get(d.agent_id)?.full_name || 'Unknown';
       const current = map.get(d.agent_id) || { name, revenue: 0, orders: 0, commission: 0 };
       current.revenue += d.deal_value || 0;
       current.orders += 1;

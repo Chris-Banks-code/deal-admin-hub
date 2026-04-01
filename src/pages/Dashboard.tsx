@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { Package, Clock, DollarSign, Users, Eye, Check, X, Plus, Box, FileText, TrendingUp, ArrowUpRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,14 +21,23 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalOrders: 0, pending: 0, revenue: 0, activeAgents: 0 });
   const [recentDeals, setRecentDeals] = useState<any[]>([]);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectingDealId, setRejectingDealId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [dealsRes, agentsRes] = await Promise.all([
-        supabase.from('deals').select('*').order('created_at', { ascending: false }),
+      const [dealsRes, recentRes, agentsRes] = await Promise.all([
+        // Stats query — only fetch columns needed for aggregation
+        supabase.from('deals').select('id, status, deal_value'),
+        // Recent deals — fetch only 6 rows from the DB
+        supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(6),
         supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
       ]);
+
+      if (dealsRes.error) console.error('Stats fetch error:', dealsRes.error);
+      if (recentRes.error) console.error('Recent deals fetch error:', recentRes.error);
 
       const deals = dealsRes.data || [];
       const totalOrders = deals.length;
@@ -35,7 +46,7 @@ const Dashboard = () => {
       const activeAgents = agentsRes.data?.length || 0;
 
       setStats({ totalOrders, pending, revenue, activeAgents });
-      setRecentDeals(deals.slice(0, 6));
+      setRecentDeals(recentRes.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -59,12 +70,21 @@ const Dashboard = () => {
     setStats(prev => ({ ...prev, pending: prev.pending - 1 }));
   };
 
-  const handleReject = async (dealId: string) => {
-    const { error } = await supabase.from('deals').update({ status: 'rejected', rejection_reason: 'Rejected from dashboard' }).eq('id', dealId);
+  const openReject = (dealId: string) => {
+    setRejectingDealId(dealId);
+    setRejectReason('');
+    setShowRejectDialog(true);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectingDealId || !rejectReason.trim()) return;
+    const { error } = await supabase.from('deals').update({ status: 'rejected', rejection_reason: rejectReason.trim() }).eq('id', rejectingDealId);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Order rejected' });
-    setRecentDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'rejected' } : d));
+    setShowRejectDialog(false);
+    setRecentDeals(prev => prev.map(d => d.id === rejectingDealId ? { ...d, status: 'rejected' } : d));
     setStats(prev => ({ ...prev, pending: prev.pending - 1 }));
+    setRejectingDealId(null);
   };
 
   const statCards = [
@@ -178,7 +198,7 @@ const Dashboard = () => {
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success hover:bg-success/10" onClick={() => handleApprove(deal.id)}>
                                 <Check className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleReject(deal.id)}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openReject(deal.id)}>
                                 <X className="h-3.5 w-3.5" />
                               </Button>
                             </>
@@ -216,6 +236,20 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+      {/* Reject reason dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Order</DialogTitle>
+            <DialogDescription>Please provide a reason for rejection.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Reason for rejection..." rows={3} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Cancel</Button>
+            <Button variant="destructive" disabled={!rejectReason.trim()} onClick={confirmReject}>Confirm Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
