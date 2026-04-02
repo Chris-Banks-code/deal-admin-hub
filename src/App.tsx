@@ -14,6 +14,7 @@ import ProductsPage from "./pages/Products";
 import ClientsPage from "./pages/Clients";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
+import TargetsPage from "./pages/Targets";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/users" element={<ProtectedRoute adminOnly><UsersPage /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute adminOnly><ProductsPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute adminOnly><ClientsPage /></ProtectedRoute>} />
+            <Route path="/targets" element={<ProtectedRoute><TargetsPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

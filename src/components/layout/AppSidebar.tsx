@@ -1,4 +1,4 @@
-import { Home, Package, Users, Box, Building2, BarChart3, ChevronLeft } from 'lucide-react';
+import { Home, Package, Users, Box, Building2, BarChart3, Target, ChevronLeft } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import dealLogo from '@/assets/deal-logo.jpg';
 
 const mainNavItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: Home, adminOnly: false },
-  { title: 'Orders', url: '/orders', icon: Package, adminOnly: false },
-  { title: 'Analytics', url: '/analytics', icon: BarChart3, adminOnly: false },
+  { title: 'Dashboard',  url: '/dashboard', icon: Home,     adminOnly: false },
+  { title: 'Orders',     url: '/orders',    icon: Package,  adminOnly: false },
+  { title: 'Targets',    url: '/targets',   icon: Target,   adminOnly: false },
+  { title: 'Analytics',  url: '/analytics', icon: BarChart3,adminOnly: false },
 ];
 
 const managementNavItems = [
