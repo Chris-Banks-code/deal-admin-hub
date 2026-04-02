@@ -32,13 +32,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r-0">
       {/* Logo */}
       <div className="flex items-center px-4 py-5 border-b border-sidebar-border">
-        {collapsed ? (
-          /* Collapsed: icon-only */
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden shrink-0 bg-sidebar-accent">
-            <img src={dealLogo} alt="Deal Group" className="h-9 w-9 object-cover brightness-0 invert" />
-          </div>
-        ) : (
-          /* Expanded: full logo image */
+        {!collapsed && (
           <img src={dealLogo} alt="Deal Group" className="h-9 w-auto object-contain brightness-0 invert" />
         )}
       </div>
