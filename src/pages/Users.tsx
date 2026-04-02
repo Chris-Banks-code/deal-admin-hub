@@ -16,6 +16,7 @@ import { Search, Plus, Edit2, UserX, UserCheck, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getInitials, getRoleBadgeColor, getRoleLabel } from '@/lib/formatters';
+import { motion } from 'framer-motion';
 
 interface UserForm {
   full_name: string;
@@ -63,23 +64,10 @@ const UsersPage = () => {
     });
   }, [users, search, roleFilter, statusFilter]);
 
-  const openAdd = () => {
-    setEditingUser(null);
-    setForm(emptyForm);
-    setShowModal(true);
-  };
-
+  const openAdd = () => { setEditingUser(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = (user: any) => {
     setEditingUser(user);
-    setForm({
-      full_name: user.full_name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      supervisor_id: user.supervisor_id || '',
-      password: '',
-      status: user.status || 'active',
-    });
+    setForm({ full_name: user.full_name, email: user.email, phone: user.phone, role: user.role, supervisor_id: user.supervisor_id || '', password: '', status: user.status || 'active' });
     setShowModal(true);
   };
 
@@ -91,13 +79,7 @@ const UsersPage = () => {
     setSaving(true);
 
     if (editingUser) {
-      const updateData: any = {
-        full_name: form.full_name.trim(),
-        phone: form.phone.trim(),
-        role: form.role,
-        status: form.status,
-        supervisor_id: form.role === 'agent' && form.supervisor_id ? form.supervisor_id : null,
-      };
+      const updateData: any = { full_name: form.full_name.trim(), phone: form.phone.trim(), role: form.role, status: form.status, supervisor_id: form.role === 'agent' && form.supervisor_id ? form.supervisor_id : null };
       const { error } = await supabase.from('profiles').update(updateData).eq('id', editingUser.id);
       if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setSaving(false); return; }
       toast({ title: 'User updated' });
@@ -107,22 +89,11 @@ const UsersPage = () => {
         setSaving(false);
         return;
       }
-      // Use Edge Function — keeps user creation server-side with Admin API,
-      // preventing anyone from calling the public signUp endpoint directly.
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
-          email: form.email.trim(),
-          password: form.password,
-          full_name: form.full_name.trim(),
-          phone: form.phone.trim(),
-          role: form.role,
-        }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ email: form.email.trim(), password: form.password, full_name: form.full_name.trim(), phone: form.phone.trim(), role: form.role }),
       });
       const result = await res.json();
       if (!res.ok) { toast({ title: 'Error', description: result.error, variant: 'destructive' }); setSaving(false); return; }
@@ -143,15 +114,10 @@ const UsersPage = () => {
 
   const deleteUser = async () => {
     if (!deletingUserId) return;
-    // Use Edge Function — deletes the auth user via Admin API, which cascades
-    // to the profiles row. Deleting only the profile row left a zombie auth account.
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
       body: JSON.stringify({ userId: deletingUserId }),
     });
     const result = await res.json();
@@ -163,17 +129,16 @@ const UsersPage = () => {
 
   return (
     <DashboardLayout title="Users">
-      <div className="space-y-4">
-        {/* Header */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 justify-between">
           <div className="flex gap-3 flex-1">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search users..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+              <Input placeholder="Search users..." className="pl-9 bg-white/[0.05] border-white/[0.08] rounded-xl" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="w-[160px] bg-white/[0.05] border-white/[0.08] rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-card/95 glass border-white/10">
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="agent">Agent</SelectItem>
                 <SelectItem value="supervisor">Supervisor</SelectItem>
@@ -182,41 +147,42 @@ const UsersPage = () => {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="w-[130px] bg-white/[0.05] border-white/[0.08] rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-card/95 glass border-white/10">
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={openAdd} className="gap-2"><Plus className="h-4 w-4" /> Add User</Button>
+          <Button onClick={openAdd} className="gap-2 bg-gradient-primary hover:opacity-90 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20">
+            <Plus className="h-4 w-4" /> Add User
+          </Button>
         </div>
 
-        {/* Table */}
-        <Card>
+        <Card className="glass-card overflow-hidden">
           <CardContent className="p-0">
             {loading ? (
-              <div className="p-6 space-y-3">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+              <div className="p-6 space-y-3">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full bg-white/[0.04]" />)}</div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="border-white/[0.06] hover:bg-transparent">
                     <TableHead className="w-12"></TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead className="hidden md:table-cell">Phone</TableHead>
-                    <TableHead className="hidden lg:table-cell">Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Name</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Role</TableHead>
+                    <TableHead className="hidden md:table-cell text-xs font-medium text-muted-foreground">Phone</TableHead>
+                    <TableHead className="hidden lg:table-cell text-xs font-medium text-muted-foreground">Email</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-right text-xs font-medium text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map(user => (
-                    <TableRow key={user.id}>
+                    <TableRow key={user.id} className="border-white/[0.04] hover:bg-white/[0.04] transition-colors duration-150 group">
                       <TableCell>
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs bg-primary/10 text-primary">{getInitials(user.full_name)}</AvatarFallback>
+                        <Avatar className="h-8 w-8 ring-1 ring-white/10">
+                          <AvatarFallback className="text-xs bg-gradient-primary text-white">{getInitials(user.full_name)}</AvatarFallback>
                         </Avatar>
                       </TableCell>
                       <TableCell className="font-medium text-sm">{user.full_name}</TableCell>
@@ -226,17 +192,17 @@ const UsersPage = () => {
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{user.phone}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{user.email}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-xs ${user.status === 'active' ? 'bg-success/10 text-success border-success/20' : 'bg-muted text-muted-foreground'}`}>
+                        <Badge variant="outline" className={`text-xs ${user.status === 'active' ? 'bg-success/10 text-success border-success/20 glow-success' : 'bg-white/[0.05] text-muted-foreground border-white/[0.08]'}`}>
                           {user.status === 'active' ? 'Active' : 'Suspended'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(user)}><Edit2 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStatus(user)}>
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/[0.08]" onClick={() => openEdit(user)}><Edit2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/[0.08]" onClick={() => toggleStatus(user)}>
                             {user.status === 'active' ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingUserId(user.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setDeletingUserId(user.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -248,33 +214,23 @@ const UsersPage = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
-      {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent>
+        <DialogContent className="bg-card/95 glass border-white/10">
           <DialogHeader>
             <DialogTitle>{editingUser ? 'Edit User' : 'Add User'}</DialogTitle>
             <DialogDescription>{editingUser ? 'Update user details.' : 'Create a new user account.'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Full Name *</Label>
-              <Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} disabled={!!editingUser} />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone *</Label>
-              <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
-            </div>
+            <div className="space-y-2"><Label>Full Name *</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
+            <div className="space-y-2"><Label>Email *</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} disabled={!!editingUser} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
+            <div className="space-y-2"><Label>Phone *</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
             <div className="space-y-2">
               <Label>Role *</Label>
               <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="bg-white/[0.05] border-white/[0.08] rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-card/95 glass border-white/10">
                   <SelectItem value="agent">Agent</SelectItem>
                   <SelectItem value="supervisor">Supervisor</SelectItem>
                   <SelectItem value="operation_manager">Operation Manager</SelectItem>
@@ -286,18 +242,13 @@ const UsersPage = () => {
               <div className="space-y-2">
                 <Label>Supervisor</Label>
                 <Select value={form.supervisor_id} onValueChange={v => setForm(f => ({ ...f, supervisor_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select supervisor" /></SelectTrigger>
-                  <SelectContent>
-                    {supervisors.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
-                  </SelectContent>
+                  <SelectTrigger className="bg-white/[0.05] border-white/[0.08] rounded-xl"><SelectValue placeholder="Select supervisor" /></SelectTrigger>
+                  <SelectContent className="bg-card/95 glass border-white/10">{supervisors.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}
             {!editingUser && (
-              <div className="space-y-2">
-                <Label>Password *</Label>
-                <Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" />
-              </div>
+              <div className="space-y-2"><Label>Password *</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
             )}
             <div className="flex items-center gap-3">
               <Switch checked={form.status === 'active'} onCheckedChange={c => setForm(f => ({ ...f, status: c ? 'active' : 'suspended' }))} />
@@ -305,19 +256,20 @@ const UsersPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>{editingUser ? 'Update' : 'Create'} User</Button>
+            <Button variant="ghost" onClick={() => setShowModal(false)} className="hover:bg-white/[0.08]">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-gradient-primary hover:opacity-90 rounded-lg">{editingUser ? 'Update' : 'Create'} User</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <AlertDialog open={!!deletingUserId} onOpenChange={open => { if (!open) setDeletingUserId(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card/95 glass border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete the user's account and profile. They will no longer be able to log in. This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogDescription>This will permanently delete the user's account and profile. This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="hover:bg-white/[0.08]">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={deleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

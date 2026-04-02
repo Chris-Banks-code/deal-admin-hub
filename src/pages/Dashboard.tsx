@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
+import { motion } from 'framer-motion';
 
 const Dashboard = () => {
   const { isAdmin } = useAuth();
@@ -29,15 +30,10 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const [dealsRes, recentRes, agentsRes] = await Promise.all([
-        // Stats query — only fetch columns needed for aggregation
         supabase.from('deals').select('id, status, deal_value'),
-        // Recent deals — fetch only 6 rows from the DB
         supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(6),
         supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
       ]);
-
-      if (dealsRes.error) console.error('Stats fetch error:', dealsRes.error);
-      if (recentRes.error) console.error('Recent deals fetch error:', recentRes.error);
 
       const deals = dealsRes.data || [];
       const totalOrders = deals.length;
@@ -88,134 +84,153 @@ const Dashboard = () => {
   };
 
   const statCards = [
-    { title: 'Total Orders', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary', trend: '+12%' },
-    { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', trend: null, badge: true },
-    { title: 'Total Revenue', value: formatCurrency(stats.revenue), icon: DollarSign, accent: 'bg-success/10 text-success', trend: '+8.3%' },
-    { title: 'Active Agents', value: stats.activeAgents, icon: Users, accent: 'bg-accent/10 text-accent', trend: '+2' },
+    { title: 'Total Orders', value: stats.totalOrders, icon: Package, gradient: 'from-blue-500/10 to-purple-500/10', borderHover: 'hover:border-primary/50', trend: '+12%' },
+    { title: 'Pending Approvals', value: stats.pending, icon: Clock, gradient: 'from-orange-500/10 to-yellow-500/10', borderHover: 'hover:border-warning/50', trend: null, badge: true },
+    { title: 'Total Revenue', value: formatCurrency(stats.revenue), icon: DollarSign, gradient: 'from-green-500/10 to-emerald-500/10', borderHover: 'hover:border-success/50', trend: '+8.3%' },
+    { title: 'Active Agents', value: stats.activeAgents, icon: Users, gradient: 'from-purple-500/10 to-pink-500/10', borderHover: 'hover:border-accent/50', trend: '+2' },
   ];
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08 }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }
+  };
 
   return (
     <DashboardLayout title="Dashboard">
-      <div className="space-y-8">
+      <motion.div variants={container} initial="hidden" animate="show" className="space-y-8">
         {/* Welcome */}
-        <div className="animate-in-up">
+        <motion.div variants={item}>
           <p className="text-sm text-muted-foreground">Here's what's happening with your platform today.</p>
-        </div>
+        </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statCards.map((card, i) => (
-            <Card key={card.title} className="shadow-card hover:shadow-premium transition-shadow duration-300 border-border/50 animate-in-up" style={{ animationDelay: `${i * 60}ms` }}>
-              <CardContent className="p-5">
-                {loading ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-8 w-20" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{card.title}</p>
-                      <div className={`rounded-lg p-2 ${card.accent}`}>
-                        <card.icon className="h-4 w-4" />
+        <motion.div variants={container} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards.map((card) => (
+            <motion.div key={card.title} variants={item}>
+              <Card className={`group relative overflow-hidden glass-card-hover ${card.borderHover} transition-all duration-300`}>
+                {/* Gradient overlay on hover */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                <CardContent className="p-5 relative z-10">
+                  {loading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-24 bg-white/[0.06]" />
+                      <Skeleton className="h-8 w-20 bg-white/[0.06]" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-medium text-muted-foreground">{card.title}</p>
+                        <div className="rounded-xl p-2 bg-white/[0.06]">
+                          <card.icon className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-end justify-between">
-                      <p className="text-2xl font-bold tracking-tight">{card.value}</p>
-                      {card.trend && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-success">
-                          <TrendingUp className="h-3 w-3" />
-                          {card.trend}
-                        </span>
-                      )}
-                      {card.badge && Number(card.value) > 0 && (
-                        <Badge className="bg-warning/15 text-warning border-warning/20 text-[10px] font-semibold">
-                          Needs review
-                        </Badge>
-                      )}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                      <div className="flex items-end justify-between">
+                        <p className="text-2xl font-semibold tracking-tight font-mono-num">{card.value}</p>
+                        {card.trend && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-medium text-success">
+                            <TrendingUp className="h-3 w-3" />
+                            {card.trend}
+                          </span>
+                        )}
+                        {card.badge && Number(card.value) > 0 && (
+                          <Badge className="bg-warning/10 text-warning border-warning/20 text-[10px] font-medium glow-warning">
+                            Needs review
+                          </Badge>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Recent Orders */}
-        <Card className="shadow-card border-border/50 animate-in-up" style={{ animationDelay: '200ms' }}>
-          <CardHeader className="flex flex-row items-center justify-between pb-4 px-6">
-            <div>
-              <CardTitle className="text-sm font-semibold">Recent Orders</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Latest transactions across the platform</p>
-            </div>
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-medium h-8" onClick={() => navigate('/orders')}>
-              View All
-              <ArrowUpRight className="h-3 w-3" />
-            </Button>
-          </CardHeader>
-          <CardContent className="px-0 pb-2">
-            {loading ? (
-              <div className="px-6 space-y-3">
-                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+        <motion.div variants={item}>
+          <Card className="glass-card overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 px-6">
+              <div>
+                <CardTitle className="text-sm font-semibold">Recent Orders</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Latest transactions across the platform</p>
               </div>
-            ) : recentDeals.length === 0 ? (
-              <div className="text-center py-16 text-muted-foreground">
-                <Package className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p className="font-medium text-sm">No orders yet</p>
-                <p className="text-xs mt-1 text-muted-foreground/70">Orders will appear here when agents start creating deals</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Deal #</TableHead>
-                    <TableHead className="hidden md:table-cell text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Retailer</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Amount</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Status</TableHead>
-                    <TableHead className="hidden sm:table-cell text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Date</TableHead>
-                    <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentDeals.map(deal => (
-                    <TableRow key={deal.id} className="group cursor-pointer" onClick={() => navigate('/orders')}>
-                      <TableCell className="font-semibold text-sm">{deal.deal_number}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{deal.retailer_name || '—'}</TableCell>
-                      <TableCell className="text-sm font-medium">{formatCurrency(deal.deal_value)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`text-[10px] font-semibold ${getStatusColor(deal.status)}`}>
-                          {getStatusLabel(deal.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatDate(deal.created_at)}</TableCell>
-                      <TableCell onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate('/orders')}>
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          {(deal.status === 'pending_admin' || deal.status === 'pending') && (
-                            <>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success hover:bg-success/10" onClick={() => handleApprove(deal.id)}>
-                                <Check className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openReject(deal.id)}>
-                                <X className="h-3.5 w-3.5" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs font-medium h-8 text-muted-foreground hover:text-foreground hover:bg-white/[0.08]" onClick={() => navigate('/orders')}>
+                View All
+                <ArrowUpRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="px-0 pb-2">
+              {loading ? (
+                <div className="px-6 space-y-3">
+                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full bg-white/[0.04]" />)}
+                </div>
+              ) : recentDeals.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <Package className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                  <p className="font-medium text-sm">No orders yet</p>
+                  <p className="text-xs mt-1 text-muted-foreground">Orders will appear here when agents start creating deals</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-white/[0.06]">
+                      <TableHead className="text-xs font-medium text-muted-foreground">Deal #</TableHead>
+                      <TableHead className="hidden md:table-cell text-xs font-medium text-muted-foreground">Retailer</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground">Amount</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground">Status</TableHead>
+                      <TableHead className="hidden sm:table-cell text-xs font-medium text-muted-foreground">Date</TableHead>
+                      <TableHead className="text-right text-xs font-medium text-muted-foreground">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {recentDeals.map(deal => (
+                      <TableRow key={deal.id} className="group cursor-pointer border-white/[0.04] hover:bg-white/[0.04] transition-colors duration-150" onClick={() => navigate('/orders')}>
+                        <TableCell className="font-medium text-sm font-mono-num">{deal.deal_number}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{deal.retailer_name || '—'}</TableCell>
+                        <TableCell className="text-sm font-medium font-mono-num">{formatCurrency(deal.deal_value)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`text-[10px] font-medium ${getStatusColor(deal.status)}`}>
+                            {getStatusLabel(deal.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatDate(deal.created_at)}</TableCell>
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-white/[0.08]" onClick={() => navigate('/orders')}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            {(deal.status === 'pending_admin' || deal.status === 'pending') && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success hover:bg-success/10" onClick={() => handleApprove(deal.id)}>
+                                  <Check className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openReject(deal.id)}>
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Quick Actions - Admin only */}
         {isAdmin && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-in-up" style={{ animationDelay: '300ms' }}>
+          <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               { label: 'Add New User', icon: Plus, path: '/users' },
               { label: 'Add Product', icon: Box, path: '/products' },
@@ -223,29 +238,30 @@ const Dashboard = () => {
             ].map(action => (
               <Button
                 key={action.label}
-                variant="outline"
-                className="h-12 justify-start gap-3 border-border/50 hover:border-accent/30 hover:bg-accent/5 text-sm font-medium transition-all duration-200"
+                variant="ghost"
+                className="h-12 justify-start gap-3 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] text-sm font-medium transition-all duration-200 rounded-xl"
                 onClick={() => navigate(action.path)}
               >
-                <div className="rounded-md p-1.5 bg-muted">
+                <div className="rounded-lg p-1.5 bg-white/[0.06]">
                   <action.icon className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
                 {action.label}
               </Button>
             ))}
-          </div>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
+
       {/* Reject reason dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
+        <DialogContent className="bg-card/95 glass border-white/10">
           <DialogHeader>
             <DialogTitle>Reject Order</DialogTitle>
             <DialogDescription>Please provide a reason for rejection.</DialogDescription>
           </DialogHeader>
-          <Textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Reason for rejection..." rows={3} />
+          <Textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Reason for rejection..." rows={3} className="bg-white/[0.05] border-white/[0.08]" />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setShowRejectDialog(false)} className="hover:bg-white/[0.08]">Cancel</Button>
             <Button variant="destructive" disabled={!rejectReason.trim()} onClick={confirmReject}>Confirm Reject</Button>
           </DialogFooter>
         </DialogContent>

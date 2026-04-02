@@ -11,14 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, Target, Users, TrendingUp, Trophy, Plus, Edit2, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { motion } from 'framer-motion';
 
 interface AgentRow {
   id: string;
@@ -38,8 +36,6 @@ interface TargetForm {
 }
 
 const emptyForm: TargetForm = { agent_id: '', target_amount: '', notes: '' };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const toMonthLabel = (ym: string) => {
   const [year, month] = ym.split('-');
@@ -75,16 +71,14 @@ const getStatus = (earnings: number, target?: number): 'surpassed' | 'reached' |
 const StatusBadge = ({ earnings, target }: { earnings: number; target?: number }) => {
   const status = getStatus(earnings, target);
   const map = {
-    surpassed: { label: '🏆 Surpassed', cls: 'bg-accent/15 text-accent border-accent/30' },
-    reached:   { label: '🟢 Reached',   cls: 'bg-success/10 text-success border-success/20' },
-    below:     { label: '🔴 Below',      cls: 'bg-destructive/10 text-destructive border-destructive/20' },
-    none:      { label: '⚪ No Target',  cls: 'bg-muted text-muted-foreground border-border' },
+    surpassed: { label: '🏆 Surpassed', cls: 'bg-primary/10 text-primary border-primary/20 glow-blue' },
+    reached:   { label: '🟢 Reached',   cls: 'bg-success/10 text-success border-success/20 glow-success' },
+    below:     { label: '🔴 Below',      cls: 'bg-destructive/10 text-destructive border-destructive/20 glow-error' },
+    none:      { label: '⚪ No Target',  cls: 'bg-white/[0.05] text-muted-foreground border-white/[0.08]' },
   };
   const { label, cls } = map[status];
   return <Badge variant="outline" className={`text-xs font-medium ${cls}`}>{label}</Badge>;
 };
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 const TargetsPage = () => {
   const { profile, isAdmin, isOperationManager } = useAuth();
@@ -98,31 +92,27 @@ const TargetsPage = () => {
   const [sortKey, setSortKey] = useState<'name' | 'progress' | 'status'>('name');
   const [sortAsc, setSortAsc] = useState(true);
 
-  // Set/Edit modal
   const [showModal, setShowModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentRow | null>(null);
   const [form, setForm] = useState<TargetForm>(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  // Bulk modal
   const [showBulk, setShowBulk] = useState(false);
   const [bulkAmount, setBulkAmount] = useState('');
   const [bulkNotes, setBulkNotes] = useState('');
   const [bulkOverwrite, setBulkOverwrite] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  // Delete confirm
   const [deletingAgent, setDeletingAgent] = useState<AgentRow | null>(null);
-
-  // ── Fetch ────────────────────────────────────────────────────────────────────
 
   const fetchData = async () => {
     setLoading(true);
     const { start, end } = monthBounds(month);
 
+    // Use explicit typing with supabase queries
     const [agentsRes, targetsRes, earningsRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, role').in('role', ['agent', 'supervisor']).eq('status', 'active').order('full_name'),
-      supabase.from('monthly_targets').select('*').eq('month', month),
+      supabase.from('monthly_targets' as any).select('*').eq('month', month),
       supabase.from('deals').select('agent_id, agent_commission').eq('status', 'completed').gte('created_at', start).lt('created_at', end),
     ]);
 
@@ -137,13 +127,8 @@ const TargetsPage = () => {
     const rows: AgentRow[] = (agentsRes.data || []).map((a: any) => {
       const t = targetMap.get(a.id) as any;
       return {
-        id: a.id,
-        full_name: a.full_name,
-        email: a.email,
-        role: a.role,
-        target_id: t?.id,
-        target_amount: t?.target_amount,
-        notes: t?.notes,
+        id: a.id, full_name: a.full_name, email: a.email, role: a.role,
+        target_id: t?.id, target_amount: t?.target_amount, notes: t?.notes,
         earnings: earningsMap.get(a.id) || 0,
       };
     });
@@ -153,8 +138,6 @@ const TargetsPage = () => {
   };
 
   useEffect(() => { fetchData(); }, [month]);
-
-  // ── Derived / stats ───────────────────────────────────────────────────────────
 
   const stats = useMemo(() => {
     const withTarget = agents.filter(a => a.target_amount);
@@ -190,15 +173,9 @@ const TargetsPage = () => {
     else { setSortKey(key); setSortAsc(true); }
   };
 
-  // ── Set / Edit ────────────────────────────────────────────────────────────────
-
   const openSet = (agent: AgentRow) => {
     setEditingAgent(agent);
-    setForm({
-      agent_id: agent.id,
-      target_amount: agent.target_amount ? String(agent.target_amount) : '',
-      notes: agent.notes || '',
-    });
+    setForm({ agent_id: agent.id, target_amount: agent.target_amount ? String(agent.target_amount) : '', notes: agent.notes || '' });
     setShowModal(true);
   };
 
@@ -209,12 +186,8 @@ const TargetsPage = () => {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('monthly_targets').upsert({
-      agent_id: form.agent_id,
-      target_amount: amount,
-      month,
-      set_by: profile?.id,
-      notes: form.notes.trim() || null,
+    const { error } = await (supabase.from('monthly_targets' as any) as any).upsert({
+      agent_id: form.agent_id, target_amount: amount, month, set_by: profile?.id, notes: form.notes.trim() || null,
     }, { onConflict: 'agent_id,month' });
 
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setSaving(false); return; }
@@ -223,8 +196,6 @@ const TargetsPage = () => {
     setShowModal(false);
     fetchData();
   };
-
-  // ── Bulk set ──────────────────────────────────────────────────────────────────
 
   const handleBulkSave = async () => {
     const amount = Number(bulkAmount);
@@ -237,13 +208,7 @@ const TargetsPage = () => {
     const targets = agents
       .filter(a => a.role === 'agent')
       .filter(a => bulkOverwrite || !a.target_amount)
-      .map(a => ({
-        agent_id: a.id,
-        target_amount: amount,
-        month,
-        set_by: profile?.id,
-        notes: bulkNotes.trim() || null,
-      }));
+      .map(a => ({ agent_id: a.id, target_amount: amount, month, set_by: profile?.id, notes: bulkNotes.trim() || null }));
 
     if (targets.length === 0) {
       toast({ title: 'No agents to update', description: 'All agents already have a target. Enable "Overwrite existing" to replace them.' });
@@ -251,7 +216,7 @@ const TargetsPage = () => {
       return;
     }
 
-    const { error } = await supabase.from('monthly_targets').upsert(targets, { onConflict: 'agent_id,month' });
+    const { error } = await (supabase.from('monthly_targets' as any) as any).upsert(targets, { onConflict: 'agent_id,month' });
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setBulkSaving(false); return; }
     toast({ title: `Targets set for ${targets.length} agent(s)` });
     setBulkSaving(false);
@@ -261,44 +226,37 @@ const TargetsPage = () => {
     fetchData();
   };
 
-  // ── Delete ────────────────────────────────────────────────────────────────────
-
   const handleDelete = async () => {
     if (!deletingAgent) return;
-    const { error } = await supabase.from('monthly_targets').delete().eq('agent_id', deletingAgent.id).eq('month', month);
+    const { error } = await (supabase.from('monthly_targets' as any) as any).delete().eq('agent_id', deletingAgent.id).eq('month', month);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setDeletingAgent(null); return; }
     toast({ title: 'Target removed' });
     setDeletingAgent(null);
     fetchData();
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
-
   const SortIcon = ({ k }: { k: typeof sortKey }) =>
     sortKey === k ? <span className="ml-1 text-[10px]">{sortAsc ? '↑' : '↓'}</span> : null;
 
   return (
     <DashboardLayout title="Monthly Targets">
-      <div className="space-y-6">
-
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
         {/* Month navigator */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setMonth(m => offsetMonth(m, -1))}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-white/[0.08] rounded-xl" onClick={() => setMonth(m => offsetMonth(m, -1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm font-semibold w-36 text-center">{toMonthLabel(month)}</span>
-            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setMonth(m => offsetMonth(m, 1))} disabled={month >= currentYM()}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-white/[0.08] rounded-xl" onClick={() => setMonth(m => offsetMonth(m, 1))} disabled={month >= currentYM()}>
               <ChevronRight className="h-4 w-4" />
             </Button>
             {month !== currentYM() && (
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => setMonth(currentYM())}>
-                Today
-              </Button>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:bg-white/[0.08] rounded-lg" onClick={() => setMonth(currentYM())}>Today</Button>
             )}
           </div>
           {canEdit && (
-            <Button onClick={() => { setBulkAmount(''); setBulkNotes(''); setBulkOverwrite(false); setShowBulk(true); }} variant="outline" className="gap-2">
+            <Button onClick={() => { setBulkAmount(''); setBulkNotes(''); setBulkOverwrite(false); setShowBulk(true); }} variant="ghost" className="gap-2 bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] rounded-xl">
               <Users className="h-4 w-4" /> Set for All Agents
             </Button>
           )}
@@ -307,70 +265,73 @@ const TargetsPage = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Targets Set',    value: stats.withTarget,    icon: Target,    accent: 'bg-primary/8 text-primary' },
-            { label: 'No Target',      value: stats.withoutTarget, icon: Users,     accent: 'bg-muted text-muted-foreground' },
-            { label: 'On Track',       value: stats.reached,       icon: TrendingUp,accent: 'bg-success/10 text-success' },
-            { label: 'Below Target',   value: stats.below,         icon: Trophy,    accent: 'bg-destructive/10 text-destructive' },
+            { label: 'Targets Set', value: stats.withTarget, icon: Target, gradient: 'from-blue-500/10 to-purple-500/10' },
+            { label: 'No Target', value: stats.withoutTarget, icon: Users, gradient: 'from-white/[0.02] to-white/[0.04]' },
+            { label: 'On Track', value: stats.reached, icon: TrendingUp, gradient: 'from-green-500/10 to-emerald-500/10' },
+            { label: 'Below Target', value: stats.below, icon: Trophy, gradient: 'from-red-500/10 to-orange-500/10' },
           ].map((s, i) => (
-            <Card key={i} className="shadow-card border-border/50">
-              <CardContent className="p-5">
-                {loading ? <Skeleton className="h-14 w-full" /> : (
-                  <>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</p>
-                      <div className={`rounded-lg p-2 ${s.accent}`}><s.icon className="h-4 w-4" /></div>
-                    </div>
-                    <p className="text-2xl font-bold tracking-tight">{s.value}</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, duration: 0.4 }}>
+              <Card className="glass-card-hover group relative overflow-hidden">
+                <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                <CardContent className="p-5 relative z-10">
+                  {loading ? <Skeleton className="h-14 w-full bg-white/[0.04]" /> : (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
+                        <div className="rounded-xl p-2 bg-white/[0.06]"><s.icon className="h-4 w-4 text-muted-foreground" /></div>
+                      </div>
+                      <p className="text-2xl font-semibold tracking-tight font-mono-num">{s.value}</p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
 
         {/* Table */}
-        <Card className="shadow-card border-border/50">
+        <Card className="glass-card overflow-hidden">
           <CardHeader className="pb-3 px-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <CardTitle className="text-sm font-semibold">Agent Targets — {toMonthLabel(month)}</CardTitle>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search agents..." className="pl-9 h-8 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
+                <Input placeholder="Search agents..." className="pl-9 h-8 text-sm bg-white/[0.05] border-white/[0.08] rounded-xl" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
-              <div className="p-6 space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+              <div className="p-6 space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full bg-white/[0.04]" />)}</div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
-                <Target className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <Target className="h-10 w-10 mx-auto mb-3 opacity-20" />
                 <p className="font-medium text-sm">No agents found</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wider" onClick={() => toggleSort('name')}>
+                  <TableRow className="hover:bg-transparent border-white/[0.06]">
+                    <TableHead className="cursor-pointer select-none text-xs font-medium text-muted-foreground" onClick={() => toggleSort('name')}>
                       Agent <SortIcon k="name" />
                     </TableHead>
-                    <TableHead className="hidden sm:table-cell text-xs font-semibold uppercase tracking-wider">Role</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Target</TableHead>
-                    <TableHead className="hidden md:table-cell text-xs font-semibold uppercase tracking-wider">Earnings</TableHead>
-                    <TableHead className="hidden lg:table-cell cursor-pointer select-none text-xs font-semibold uppercase tracking-wider" onClick={() => toggleSort('progress')}>
+                    <TableHead className="hidden sm:table-cell text-xs font-medium text-muted-foreground">Role</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Target</TableHead>
+                    <TableHead className="hidden md:table-cell text-xs font-medium text-muted-foreground">Earnings</TableHead>
+                    <TableHead className="hidden lg:table-cell cursor-pointer select-none text-xs font-medium text-muted-foreground" onClick={() => toggleSort('progress')}>
                       Progress <SortIcon k="progress" />
                     </TableHead>
-                    <TableHead className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wider" onClick={() => toggleSort('status')}>
+                    <TableHead className="cursor-pointer select-none text-xs font-medium text-muted-foreground" onClick={() => toggleSort('status')}>
                       Status <SortIcon k="status" />
                     </TableHead>
-                    {canEdit && <TableHead className="text-right text-xs font-semibold uppercase tracking-wider">Actions</TableHead>}
+                    {canEdit && <TableHead className="text-right text-xs font-medium text-muted-foreground">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map(agent => {
                     const pct = agent.target_amount ? Math.min((agent.earnings / agent.target_amount) * 100, 100) : 0;
                     return (
-                      <TableRow key={agent.id}>
+                      <TableRow key={agent.id} className="border-white/[0.04] hover:bg-white/[0.04] transition-colors duration-150">
                         <TableCell>
                           <div>
                             <p className="text-sm font-medium">{agent.full_name}</p>
@@ -378,19 +339,19 @@ const TargetsPage = () => {
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          <Badge variant="outline" className="text-xs capitalize">{agent.role}</Badge>
+                          <Badge variant="outline" className="text-xs capitalize bg-white/[0.05] border-white/[0.08]">{agent.role}</Badge>
                         </TableCell>
-                        <TableCell className="text-sm font-medium">
+                        <TableCell className="text-sm font-medium font-mono-num">
                           {agent.target_amount ? formatCurrency(agent.target_amount) : <span className="text-muted-foreground text-xs">—</span>}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-sm">
+                        <TableCell className="hidden md:table-cell text-sm font-mono-num">
                           {formatCurrency(agent.earnings)}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell w-40">
                           {agent.target_amount ? (
                             <div className="space-y-1">
                               <Progress value={pct} className="h-1.5" />
-                              <p className="text-xs text-muted-foreground">{formatPercent(pct)}</p>
+                              <p className="text-xs text-muted-foreground font-mono-num">{formatPercent(pct)}</p>
                             </div>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
@@ -402,11 +363,11 @@ const TargetsPage = () => {
                         {canEdit && (
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openSet(agent)}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/[0.08]" onClick={() => openSet(agent)}>
                                 {agent.target_amount ? <Edit2 className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                               </Button>
                               {agent.target_amount && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingAgent(agent)}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setDeletingAgent(agent)}>
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               )}
@@ -421,86 +382,50 @@ const TargetsPage = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
       {/* Set / Edit Target Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent>
+        <DialogContent className="bg-card/95 glass border-white/10">
           <DialogHeader>
             <DialogTitle>{editingAgent?.target_amount ? 'Edit Target' : 'Set Target'}</DialogTitle>
-            <DialogDescription>
-              {editingAgent?.full_name} — {toMonthLabel(month)}
-            </DialogDescription>
+            <DialogDescription>{editingAgent?.full_name} — {toMonthLabel(month)}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Target Amount (USD) *</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="e.g. 5000"
-                value={form.target_amount}
-                onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))}
-              />
+              <Input type="number" min="0" step="0.01" placeholder="e.g. 5000" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label>Notes <span className="text-muted-foreground font-normal">(visible to agent on mobile)</span></Label>
-              <Textarea
-                placeholder="e.g. Focus on wholesaler visits this month..."
-                value={form.notes}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                rows={3}
-              />
+              <Textarea placeholder="e.g. Focus on wholesaler visits this month..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} className="bg-white/[0.05] border-white/[0.08] rounded-xl" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Target'}
-            </Button>
+            <Button variant="ghost" onClick={() => setShowModal(false)} className="hover:bg-white/[0.08]">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-gradient-primary hover:opacity-90 rounded-lg">{saving ? 'Saving...' : 'Save Target'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Bulk Set Modal */}
       <Dialog open={showBulk} onOpenChange={setShowBulk}>
-        <DialogContent>
+        <DialogContent className="bg-card/95 glass border-white/10">
           <DialogHeader>
             <DialogTitle>Set Target for All Agents</DialogTitle>
-            <DialogDescription>
-              Apply the same target to all active agents for {toMonthLabel(month)}.
-            </DialogDescription>
+            <DialogDescription>Apply the same target to all active agents for {toMonthLabel(month)}.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Target Amount (USD) *</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="e.g. 5000"
-                value={bulkAmount}
-                onChange={e => setBulkAmount(e.target.value)}
-              />
+              <Input type="number" min="0" step="0.01" placeholder="e.g. 5000" value={bulkAmount} onChange={e => setBulkAmount(e.target.value)} className="bg-white/[0.05] border-white/[0.08] rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label>Notes <span className="text-muted-foreground font-normal">(visible to agents on mobile)</span></Label>
-              <Textarea
-                placeholder="e.g. Monthly target for April..."
-                value={bulkNotes}
-                onChange={e => setBulkNotes(e.target.value)}
-                rows={2}
-              />
+              <Textarea placeholder="e.g. Monthly target for April..." value={bulkNotes} onChange={e => setBulkNotes(e.target.value)} rows={2} className="bg-white/[0.05] border-white/[0.08] rounded-xl" />
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50">
-              <input
-                type="checkbox"
-                id="overwrite"
-                checked={bulkOverwrite}
-                onChange={e => setBulkOverwrite(e.target.checked)}
-                className="h-4 w-4 rounded"
-              />
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+              <input type="checkbox" id="overwrite" checked={bulkOverwrite} onChange={e => setBulkOverwrite(e.target.checked)} className="h-4 w-4 rounded" />
               <div>
                 <Label htmlFor="overwrite" className="cursor-pointer text-sm">Overwrite existing targets</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -512,29 +437,24 @@ const TargetsPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulk(false)}>Cancel</Button>
-            <Button onClick={handleBulkSave} disabled={bulkSaving}>
-              {bulkSaving ? 'Saving...' : 'Set Targets'}
-            </Button>
+            <Button variant="ghost" onClick={() => setShowBulk(false)} className="hover:bg-white/[0.08]">Cancel</Button>
+            <Button onClick={handleBulkSave} disabled={bulkSaving} className="bg-gradient-primary hover:opacity-90 rounded-lg">{bulkSaving ? 'Saving...' : 'Set Targets'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirm */}
       <AlertDialog open={!!deletingAgent} onOpenChange={open => { if (!open) setDeletingAgent(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card/95 glass border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Target</AlertDialogTitle>
             <AlertDialogDescription>
               Remove the {toMonthLabel(month)} target for <strong>{deletingAgent?.full_name}</strong>?
-              They will see "No target set" on their mobile dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Remove
-            </AlertDialogAction>
+            <AlertDialogCancel className="hover:bg-white/[0.08]">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
