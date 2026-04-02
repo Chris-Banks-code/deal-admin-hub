@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Search, Eye, Check, X, Trash2, Download, Building2, Truck, DollarSign, Package, FileText } from 'lucide-react';
+import { Search, Eye, Check, X, Trash2, Download, Building2, Truck, DollarSign, Package, FileText, User, Phone, Mail, Store } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/formatters';
@@ -35,6 +35,8 @@ const Orders = () => {
   const [perPage, setPerPage] = useState(25);
   const [adminNotes, setAdminNotes] = useState('');
   const [bulkRejecting, setBulkRejecting] = useState(false);
+  const [dealAgent, setDealAgent] = useState<any>(null);
+  const [dealWholesaler, setDealWholesaler] = useState<any>(null);
 
   const fetchDeals = async () => {
     setLoading(true);
@@ -123,11 +125,40 @@ const Orders = () => {
   const openDetail = async (deal: any) => {
     setSelectedDeal(deal);
     setAdminNotes(deal.admin_notes || '');
-    // Fetch order items
+    setDealAgent(null);
+    setDealWholesaler(null);
+
+    // Fetch all related data in parallel
+    const fetches: Promise<any>[] = [];
+
     if (deal.has_multiple_products) {
-      const { data } = await supabase.from('order_items').select('*').eq('deal_id', deal.id);
-      setOrderItems(prev => ({ ...prev, [deal.id]: data || [] }));
+      fetches.push(
+        supabase.from('order_items').select('*').eq('deal_id', deal.id)
+          .then(({ data }) => setOrderItems(prev => ({ ...prev, [deal.id]: data || [] })))
+      );
     }
+
+    if (deal.agent_id) {
+      fetches.push(
+        supabase.from('profiles')
+          .select('id, full_name, phone, email, role')
+          .eq('id', deal.agent_id)
+          .single()
+          .then(({ data }) => setDealAgent(data))
+      );
+    }
+
+    if (deal.wholesaler_id) {
+      fetches.push(
+        supabase.from('clients')
+          .select('id, company_name, contact_person, phone, company_email, address, verification_status')
+          .eq('id', deal.wholesaler_id)
+          .single()
+          .then(({ data }) => setDealWholesaler(data))
+      );
+    }
+
+    await Promise.all(fetches);
     setShowDetail(true);
   };
 
@@ -375,6 +406,69 @@ const Orders = () => {
                   )}
                 </div>
               )}
+
+              {/* Agent + Wholesaler contact cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Agent */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4" /> Agent
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    {dealAgent ? (
+                      <>
+                        <div className="font-semibold">{dealAgent.full_name}</div>
+                        <Separator />
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          <span>{dealAgent.phone || '—'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                          <span>{dealAgent.email || '—'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-muted-foreground">{selectedDeal.agent_id ? 'Loading...' : '—'}</div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Wholesaler */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Store className="h-4 w-4" /> Wholesaler
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    {dealWholesaler ? (
+                      <>
+                        <div className="font-semibold">{dealWholesaler.company_name}</div>
+                        <Separator />
+                        <div className="text-muted-foreground">Contact: <span className="text-foreground">{dealWholesaler.contact_person || '—'}</span></div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          <span>{dealWholesaler.phone || '—'}</span>
+                        </div>
+                        {dealWholesaler.company_email && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5 shrink-0" />
+                            <span>{dealWholesaler.company_email}</span>
+                          </div>
+                        )}
+                        {dealWholesaler.address && (
+                          <div className="text-muted-foreground text-xs pt-1">{dealWholesaler.address}</div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-muted-foreground">{selectedDeal.wholesaler_id ? 'Loading...' : selectedDeal.wholesaler_name || '—'}</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Client Info */}
