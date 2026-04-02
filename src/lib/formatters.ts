@@ -21,10 +21,10 @@ export const formatPercent = (value: number | null | undefined): string => {
 
 export const getStatusColor = (status: string | null) => {
   switch (status) {
-    case 'completed': return 'bg-success/10 text-success border-success/20';
-    case 'pending': case 'pending_admin': return 'bg-warning/10 text-warning border-warning/20';
-    case 'rejected': return 'bg-destructive/10 text-destructive border-destructive/20';
-    default: return 'bg-muted text-muted-foreground';
+    case 'completed': return 'bg-success/10 text-success border-success/20 glow-success';
+    case 'pending': case 'pending_admin': return 'bg-warning/10 text-warning border-warning/20 glow-warning';
+    case 'rejected': return 'bg-destructive/10 text-destructive border-destructive/20 glow-error';
+    default: return 'bg-white/[0.05] text-muted-foreground border-white/[0.08]';
   }
 };
 
@@ -41,9 +41,9 @@ export const getRoleBadgeColor = (role: string) => {
   switch (role) {
     case 'admin': return 'bg-destructive/10 text-destructive border-destructive/20';
     case 'operation_manager': return 'bg-warning/10 text-warning border-warning/20';
-    case 'supervisor': return 'bg-purple-100 text-purple-700 border-purple-200';
-    case 'agent': return 'bg-blue-100 text-blue-700 border-blue-200';
-    default: return 'bg-muted text-muted-foreground';
+    case 'supervisor': return 'bg-accent/10 text-accent border-accent/20';
+    case 'agent': return 'bg-primary/10 text-primary border-primary/20';
+    default: return 'bg-white/[0.05] text-muted-foreground border-white/[0.08]';
   }
 };
 

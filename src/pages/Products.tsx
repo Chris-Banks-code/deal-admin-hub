@@ -15,24 +15,15 @@ import { Search, Plus, Edit2, Trash2, Box } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
+import { motion } from 'framer-motion';
 
 interface ProductForm {
-  product_name: string;
-  category: string;
-  unit_price: string;
-  unit_type: string;
-  commission_rate: string;
-  wholesaler_id: string;
-  wholesaler_location_id: string;
-  stock_quantity: string;
-  status: string;
+  product_name: string; category: string; unit_price: string; unit_type: string;
+  commission_rate: string; wholesaler_id: string; wholesaler_location_id: string;
+  stock_quantity: string; status: string;
 }
 
-const emptyForm: ProductForm = {
-  product_name: '', category: '', unit_price: '', unit_type: 'unit',
-  commission_rate: '4', wholesaler_id: '', wholesaler_location_id: '',
-  stock_quantity: '0', status: 'available',
-};
+const emptyForm: ProductForm = { product_name: '', category: '', unit_price: '', unit_type: 'unit', commission_rate: '4', wholesaler_id: '', wholesaler_location_id: '', stock_quantity: '0', status: 'available' };
 
 const ProductsPage = () => {
   const { toast } = useToast();
@@ -64,7 +55,6 @@ const ProductsPage = () => {
   useEffect(() => { fetchData(); }, []);
 
   const categories = useMemo(() => [...new Set(products.map(p => p.category).filter(Boolean))], [products]);
-
   const filtered = useMemo(() => {
     return products.filter(p => {
       const matchSearch = !search || p.product_name?.toLowerCase().includes(search.toLowerCase());
@@ -78,12 +68,7 @@ const ProductsPage = () => {
   const openAdd = () => { setEditingProduct(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = (p: any) => {
     setEditingProduct(p);
-    setForm({
-      product_name: p.product_name, category: p.category || '', unit_price: String(p.unit_price),
-      unit_type: p.unit_type, commission_rate: String(p.commission_rate || 4),
-      wholesaler_id: p.wholesaler_id, wholesaler_location_id: p.wholesaler_location_id || '',
-      stock_quantity: String(p.stock_quantity || 0), status: p.status || 'available',
-    });
+    setForm({ product_name: p.product_name, category: p.category || '', unit_price: String(p.unit_price), unit_type: p.unit_type, commission_rate: String(p.commission_rate || 4), wholesaler_id: p.wholesaler_id, wholesaler_location_id: p.wholesaler_location_id || '', stock_quantity: String(p.stock_quantity || 0), status: p.status || 'available' });
     setShowModal(true);
   };
 
@@ -93,17 +78,7 @@ const ProductsPage = () => {
       return;
     }
     setSaving(true);
-    const data = {
-      product_name: form.product_name.trim(),
-      category: form.category || null,
-      unit_price: Number(form.unit_price),
-      unit_type: form.unit_type,
-      commission_rate: Number(form.commission_rate),
-      wholesaler_id: form.wholesaler_id,
-      wholesaler_location_id: form.wholesaler_location_id || null,
-      stock_quantity: Number(form.stock_quantity) || 0,
-      status: form.status,
-    };
+    const data = { product_name: form.product_name.trim(), category: form.category || null, unit_price: Number(form.unit_price), unit_type: form.unit_type, commission_rate: Number(form.commission_rate), wholesaler_id: form.wholesaler_id, wholesaler_location_id: form.wholesaler_location_id || null, stock_quantity: Number(form.stock_quantity) || 0, status: form.status };
 
     if (editingProduct) {
       const { error } = await supabase.from('products').update(data).eq('id', editingProduct.id);
@@ -130,65 +105,67 @@ const ProductsPage = () => {
 
   return (
     <DashboardLayout title="Products">
-      <div className="space-y-4">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 justify-between">
           <div className="flex gap-3 flex-1">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search products..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+              <Input placeholder="Search products..." className="pl-9 bg-white/[0.05] border-white/[0.08] rounded-xl" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="w-[160px] bg-white/[0.05] border-white/[0.08] rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-card/95 glass border-white/10">
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map(c => <SelectItem key={c} value={c!}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={openAdd} className="gap-2"><Plus className="h-4 w-4" /> Add Product</Button>
+          <Button onClick={openAdd} className="gap-2 bg-gradient-primary hover:opacity-90 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20">
+            <Plus className="h-4 w-4" /> Add Product
+          </Button>
         </div>
 
-        <Card>
+        <Card className="glass-card overflow-hidden">
           <CardContent className="p-0">
             {loading ? (
-              <div className="p-6 space-y-3">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+              <div className="p-6 space-y-3">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full bg-white/[0.04]" />)}</div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
-                <Box className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                <Box className="h-12 w-12 mx-auto mb-3 opacity-20" />
                 <p className="font-medium">No products found</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="hidden md:table-cell">Category</TableHead>
-                    <TableHead className="hidden lg:table-cell">Wholesaler</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead className="hidden sm:table-cell">Commission</TableHead>
-                    <TableHead className="hidden md:table-cell">Stock</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="border-white/[0.06] hover:bg-transparent">
+                    <TableHead className="text-xs font-medium text-muted-foreground">Product</TableHead>
+                    <TableHead className="hidden md:table-cell text-xs font-medium text-muted-foreground">Category</TableHead>
+                    <TableHead className="hidden lg:table-cell text-xs font-medium text-muted-foreground">Wholesaler</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Price</TableHead>
+                    <TableHead className="hidden sm:table-cell text-xs font-medium text-muted-foreground">Commission</TableHead>
+                    <TableHead className="hidden md:table-cell text-xs font-medium text-muted-foreground">Stock</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-right text-xs font-medium text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map(p => (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} className="border-white/[0.04] hover:bg-white/[0.04] transition-colors duration-150 group">
                       <TableCell className="font-medium text-sm">{p.product_name}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{p.category || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{getWholesalerName(p.wholesaler_id)}</TableCell>
-                      <TableCell className="text-sm">{formatCurrency(p.unit_price)}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm">{formatPercent(p.commission_rate)}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{p.stock_quantity || 0}</TableCell>
+                      <TableCell className="text-sm font-mono-num">{formatCurrency(p.unit_price)}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm font-mono-num">{formatPercent(p.commission_rate)}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm font-mono-num">{p.stock_quantity || 0}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-xs ${p.status === 'available' ? 'bg-success/10 text-success border-success/20' : 'bg-muted text-muted-foreground'}`}>
+                        <Badge variant="outline" className={`text-xs ${p.status === 'available' ? 'bg-success/10 text-success border-success/20 glow-success' : 'bg-white/[0.05] text-muted-foreground border-white/[0.08]'}`}>
                           {p.status === 'available' ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}><Edit2 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingProductId(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/[0.08]" onClick={() => openEdit(p)}><Edit2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setDeletingProductId(p.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -198,58 +175,59 @@ const ProductsPage = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent>
+        <DialogContent className="bg-card/95 glass border-white/10">
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Edit Product' : 'Add Product'}</DialogTitle>
             <DialogDescription>{editingProduct ? 'Update product details.' : 'Add a new product.'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-2"><Label>Product Name *</Label><Input value={form.product_name} onChange={e => setForm(f => ({ ...f, product_name: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Product Name *</Label><Input value={form.product_name} onChange={e => setForm(f => ({ ...f, product_name: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
+            <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Unit Price *</Label><Input type="number" value={form.unit_price} onChange={e => setForm(f => ({ ...f, unit_price: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Unit Type</Label><Input value={form.unit_type} onChange={e => setForm(f => ({ ...f, unit_type: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Unit Price *</Label><Input type="number" value={form.unit_price} onChange={e => setForm(f => ({ ...f, unit_price: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
+              <div className="space-y-2"><Label>Unit Type</Label><Input value={form.unit_type} onChange={e => setForm(f => ({ ...f, unit_type: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
             </div>
-            <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={form.commission_rate} onChange={e => setForm(f => ({ ...f, commission_rate: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={form.commission_rate} onChange={e => setForm(f => ({ ...f, commission_rate: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
             <div className="space-y-2">
               <Label>Wholesaler *</Label>
               <Select value={form.wholesaler_id} onValueChange={v => setForm(f => ({ ...f, wholesaler_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select wholesaler" /></SelectTrigger>
-                <SelectContent>{wholesalers.map(w => <SelectItem key={w.id} value={w.id}>{w.company_name}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="bg-white/[0.05] border-white/[0.08] rounded-xl"><SelectValue placeholder="Select wholesaler" /></SelectTrigger>
+                <SelectContent className="bg-card/95 glass border-white/10">{wholesalers.map(w => <SelectItem key={w.id} value={w.id}>{w.company_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             {form.wholesaler_id && (
               <div className="space-y-2">
                 <Label>Location</Label>
                 <Select value={form.wholesaler_location_id} onValueChange={v => setForm(f => ({ ...f, wholesaler_location_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
-                  <SelectContent>{locations.filter(l => l.wholesaler_id === form.wholesaler_id).map(l => <SelectItem key={l.id} value={l.id}>{l.branch_name}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="bg-white/[0.05] border-white/[0.08] rounded-xl"><SelectValue placeholder="Select location" /></SelectTrigger>
+                  <SelectContent className="bg-card/95 glass border-white/10">{locations.filter(l => l.wholesaler_id === form.wholesaler_id).map(l => <SelectItem key={l.id} value={l.id}>{l.branch_name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}
-            <div className="space-y-2"><Label>Stock Quantity</Label><Input type="number" value={form.stock_quantity} onChange={e => setForm(f => ({ ...f, stock_quantity: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Stock Quantity</Label><Input type="number" value={form.stock_quantity} onChange={e => setForm(f => ({ ...f, stock_quantity: e.target.value }))} className="bg-white/[0.05] border-white/[0.08] rounded-xl" /></div>
             <div className="flex items-center gap-3">
               <Switch checked={form.status === 'available'} onCheckedChange={c => setForm(f => ({ ...f, status: c ? 'available' : 'inactive' }))} />
               <Label>Active</Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>{editingProduct ? 'Update' : 'Create'}</Button>
+            <Button variant="ghost" onClick={() => setShowModal(false)} className="hover:bg-white/[0.08]">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-gradient-primary hover:opacity-90 rounded-lg">{editingProduct ? 'Update' : 'Create'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <AlertDialog open={!!deletingProductId} onOpenChange={open => { if (!open) setDeletingProductId(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card/95 glass border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Product</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete the product. Any existing deals referencing it will retain their data, but it will no longer be available for new orders. This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogDescription>This will permanently delete the product. This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="hover:bg-white/[0.08]">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={deleteProduct} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

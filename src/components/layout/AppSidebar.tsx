@@ -6,7 +6,6 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import dealLogo from '@/assets/deal-logo.jpg';
 
 const mainNavItems = [
   { title: 'Dashboard',  url: '/dashboard', icon: Home,     adminOnly: false },
@@ -31,16 +30,21 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       {/* Logo */}
-      <div className="flex items-center px-4 py-5 border-b border-sidebar-border">
+      <div className="flex items-center px-4 py-5 border-b border-white/[0.06]">
         {!collapsed && (
-          <img src={dealLogo} alt="Deal Group" className="h-9 w-auto object-contain brightness-0 invert" />
+          <h1 className="text-xl font-bold text-gradient">Deal</h1>
+        )}
+        {collapsed && (
+          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+            <span className="text-sm font-bold text-white">D</span>
+          </div>
         )}
       </div>
 
       <SidebarContent className="px-3 py-4">
         {/* Main Nav */}
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 px-3 mb-1">Overview</SidebarGroupLabel>}
+          {!collapsed && <SidebarGroupLabel className="text-[10px] font-medium tracking-widest uppercase text-white/30 px-3 mb-1">Overview</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5">
               {mainItems.map((item) => (
@@ -49,10 +53,10 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === '/dashboard'}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/60 transition-all duration-150 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-white/50 transition-all duration-200 hover:bg-white/[0.08] hover:text-white group"
+                      activeClassName="bg-white/[0.1] text-white font-medium"
                     >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      <item.icon className="h-[18px] w-[18px] shrink-0 group-hover:scale-110 transition-transform duration-200" />
                       {!collapsed && <span className="text-[13px]">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -65,7 +69,7 @@ export function AppSidebar() {
         {/* Management Nav */}
         {mgmtItems.length > 0 && (
           <SidebarGroup className="mt-4">
-            {!collapsed && <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 px-3 mb-1">Management</SidebarGroupLabel>}
+            {!collapsed && <SidebarGroupLabel className="text-[10px] font-medium tracking-widest uppercase text-white/30 px-3 mb-1">Management</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu className="space-y-0.5">
                 {mgmtItems.map((item) => (
@@ -73,10 +77,10 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild className="h-10">
                       <NavLink
                         to={item.url}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/60 transition-all duration-150 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-white/50 transition-all duration-200 hover:bg-white/[0.08] hover:text-white group"
+                        activeClassName="bg-white/[0.1] text-white font-medium"
                       >
-                        <item.icon className="h-[18px] w-[18px] shrink-0" />
+                        <item.icon className="h-[18px] w-[18px] shrink-0 group-hover:scale-110 transition-transform duration-200" />
                         {!collapsed && <span className="text-[13px]">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
@@ -88,12 +92,12 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-sidebar-border">
+      <SidebarFooter className="p-3 border-t border-white/[0.06]">
         <Button
           variant="ghost"
           size="sm"
           onClick={toggleSidebar}
-          className="w-full justify-center text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent h-8"
+          className="w-full justify-center text-white/30 hover:text-white hover:bg-white/[0.08] h-8"
         >
           <ChevronLeft className={`h-4 w-4 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`} />
         </Button>
