@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Plus, Edit2, Trash2, Building2, MapPin, CheckCircle, Store } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 import { useAuth } from '@/contexts/AuthContext';
 import { WholesalerModal } from '@/components/wholesaler/WholesalerModal';
 
@@ -60,6 +61,7 @@ const ClientsPage = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+  useRealtimeRefresh(['clients', 'wholesaler_locations'], fetchData, 'clients-page');
 
   const filtered = useMemo(() => {
     return clients.filter(c => {

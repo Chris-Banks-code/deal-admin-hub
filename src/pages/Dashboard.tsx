@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 
 const Dashboard = () => {
   const { isAdmin } = useAuth();
@@ -53,14 +54,8 @@ const Dashboard = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchData();
-    const channel = supabase
-      .channel('dashboard-deals')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, () => { fetchData(); })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+  useEffect(() => { fetchData(); }, []);
+  useRealtimeRefresh(['deals', 'profiles'], fetchData, 'dashboard-page');
 
   const handleApprove = async (dealId: string) => {
     // Approve moves pending_admin → pending_wholesaler, not completed

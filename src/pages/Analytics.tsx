@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 import { formatCurrency } from '@/lib/formatters';
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, BarChart3, Users, Trophy } from 'lucide-react';
 import {
@@ -21,19 +22,19 @@ const Analytics = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState('30');
 
-  useEffect(() => {
-    const fetch = async () => {
-      setLoading(true);
-      const [dealsRes, profilesRes] = await Promise.all([
-        supabase.from('deals').select('*').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('*'),
-      ]);
-      setDeals(dealsRes.data || []);
-      setProfiles(profilesRes.data || []);
-      setLoading(false);
-    };
-    fetch();
-  }, []);
+  const fetchData = async () => {
+    setLoading(true);
+    const [dealsRes, profilesRes] = await Promise.all([
+      supabase.from('deals').select('*').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('*'),
+    ]);
+    setDeals(dealsRes.data || []);
+    setProfiles(profilesRes.data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+  useRealtimeRefresh(['deals', 'profiles'], fetchData, 'analytics-page');
 
   const filteredDeals = useMemo(() => {
     const days = Number(dateRange);

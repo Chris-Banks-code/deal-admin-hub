@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Plus, Edit2, Trash2, Box } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 
 interface ProductForm {
@@ -62,6 +63,7 @@ const ProductsPage = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+  useRealtimeRefresh(['products', 'clients', 'wholesaler_locations'], fetchData, 'products-page');
 
   const categories = useMemo(() => [...new Set(products.map(p => p.category).filter(Boolean))], [products]);
 

@@ -16,6 +16,7 @@ import { ChevronLeft, ChevronRight, Target, Users, TrendingUp, Trophy, Plus, Edi
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -153,6 +154,7 @@ const TargetsPage = () => {
   };
 
   useEffect(() => { fetchData(); }, [month]);
+  useRealtimeRefresh(['monthly_targets', 'deals', 'profiles'], fetchData, 'targets-page');
 
   // ── Derived / stats ───────────────────────────────────────────────────────────
 

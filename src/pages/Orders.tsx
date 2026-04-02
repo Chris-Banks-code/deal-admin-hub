@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 
 const Orders = () => {
   const { isAdmin } = useAuth();
@@ -47,6 +48,7 @@ const Orders = () => {
   };
 
   useEffect(() => { fetchDeals(); }, []);
+  useRealtimeRefresh(['deals', 'order_items'], fetchDeals, 'orders-page');
 
   // Reset to page 0 whenever filters change so the user doesn't land on an empty page
   useEffect(() => { setPage(0); }, [search, statusFilter]);

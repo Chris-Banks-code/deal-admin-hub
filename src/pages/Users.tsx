@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Plus, Edit2, UserX, UserCheck, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 import { getInitials, getRoleBadgeColor, getRoleLabel } from '@/lib/formatters';
 
 interface UserForm {
@@ -53,6 +54,7 @@ const UsersPage = () => {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+  useRealtimeRefresh(['profiles'], fetchUsers, 'users-page');
 
   const filtered = useMemo(() => {
     return users.filter(u => {
