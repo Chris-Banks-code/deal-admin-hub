@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Search, Eye, Check, X, Trash2, Download, Building2, Truck, DollarSign, Package, FileText, User, Phone, Mail, Store } from 'lucide-react';
+import { Search, Eye, Check, X, Trash2, Download, Building2, Truck, DollarSign, Package, FileText, User, Phone, Mail, Store, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/formatters';
@@ -55,7 +55,7 @@ const Orders = () => {
     return deals.filter(d => {
       const matchSearch = !search || [d.deal_number, d.retailer_name, d.wholesaler_name, d.product_name]
         .some(f => f?.toLowerCase().includes(search.toLowerCase()));
-      const matchStatus = statusFilter === 'all' || d.status === statusFilter || (statusFilter === 'pending' && d.status === 'pending_admin');
+      const matchStatus = statusFilter === 'all' || d.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [deals, search, statusFilter]);
@@ -64,18 +64,37 @@ const Orders = () => {
   const totalPages = Math.ceil(filtered.length / perPage);
 
   const statusCounts = useMemo(() => ({
-    all: deals.length,
-    pending: deals.filter(d => d.status === 'pending' || d.status === 'pending_admin').length,
-    completed: deals.filter(d => d.status === 'completed').length,
-    rejected: deals.filter(d => d.status === 'rejected').length,
+    all:                deals.length,
+    pending_admin:      deals.filter(d => d.status === 'pending_admin').length,
+    pending_wholesaler: deals.filter(d => d.status === 'pending_wholesaler').length,
+    confirmed:          deals.filter(d => d.status === 'confirmed').length,
+    delivered:          deals.filter(d => d.status === 'delivered').length,
+    completed:          deals.filter(d => d.status === 'completed').length,
+    rejected:           deals.filter(d => d.status === 'rejected').length,
   }), [deals]);
 
-  const handleApprove = async (dealId: string) => {
-    const { error } = await supabase.from('deals').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', dealId);
+  // Map each status to the next valid transition
+  const NEXT_STATUS: Record<string, { status: string; label: string; completedAt?: boolean }> = {
+    pending_admin:      { status: 'pending_wholesaler', label: 'Approve' },
+    pending_wholesaler: { status: 'confirmed',          label: 'Mark Confirmed' },
+    confirmed:          { status: 'delivered',          label: 'Mark Delivered' },
+    delivered:          { status: 'completed',          label: 'Mark Completed', completedAt: true },
+  };
+
+  const nextAction = (status: string | null) => status ? NEXT_STATUS[status] ?? null : null;
+
+  const handleTransition = async (dealId: string, current: string) => {
+    const next = nextAction(current);
+    if (!next) return;
+    const update: Record<string, string> = { status: next.status };
+    if (next.completedAt) update.completed_at = new Date().toISOString();
+    const { error } = await supabase.from('deals').update(update).eq('id', dealId);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Order approved successfully' });
+    toast({ title: `Order ${next.label.toLowerCase().replace('mark ', '')}` });
     fetchDeals();
-    if (showDetail) setShowDetail(false);
+    if (showDetail) {
+      setSelectedDeal((prev: any) => prev ? { ...prev, status: next.status, ...(next.completedAt ? { completed_at: update.completed_at } : {}) } : prev);
+    }
   };
 
   const openReject = (dealId: string) => {
@@ -178,7 +197,7 @@ const Orders = () => {
     });
   };
 
-  const isPending = (status: string | null) => status === 'pending' || status === 'pending_admin';
+  const isActionable = (status: string | null) => !!nextAction(status ?? '');
 
   const exportCSV = () => {
     const headers = ['Deal #', 'Retailer', 'Wholesaler', 'Product', 'Amount', 'Agent Commission', 'Status', 'Date'];
@@ -214,10 +233,13 @@ const Orders = () => {
             <Input placeholder="Search orders..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="pending_admin">Pending Approval</SelectItem>
+              <SelectItem value="pending_wholesaler">Pending Wholesaler</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
@@ -231,16 +253,24 @@ const Orders = () => {
 
         {/* Status chips */}
         <div className="flex gap-2 flex-wrap">
-          {(['all', 'pending', 'completed', 'rejected'] as const).map(s => (
+          {([
+            { key: 'all',                label: 'All' },
+            { key: 'pending_admin',      label: 'Pending Approval' },
+            { key: 'pending_wholesaler', label: 'Pending Wholesaler' },
+            { key: 'confirmed',          label: 'Confirmed' },
+            { key: 'delivered',          label: 'Delivered' },
+            { key: 'completed',          label: 'Completed' },
+            { key: 'rejected',           label: 'Rejected' },
+          ] as const).map(({ key, label }) => (
             <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
+              key={key}
+              onClick={() => setStatusFilter(key)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                statusFilter === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                statusFilter === key ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted'
               }`}
             >
-              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-              <span className="ml-0.5 opacity-70">({statusCounts[s]})</span>
+              {label}
+              <span className="ml-0.5 opacity-70">({statusCounts[key]})</span>
             </button>
           ))}
         </div>
@@ -251,8 +281,9 @@ const Orders = () => {
             <span className="text-sm font-medium">{selectedIds.size} selected</span>
             <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground" onClick={async () => {
               const ids = Array.from(selectedIds);
+              // Bulk approve only moves pending_admin → pending_wholesaler
               const results = await Promise.all(ids.map(id =>
-                supabase.from('deals').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id)
+                supabase.from('deals').update({ status: 'pending_wholesaler' }).eq('id', id).eq('status', 'pending_admin')
               ));
               const failed = results.filter(r => r.error).length;
               if (failed > 0) {
@@ -330,9 +361,9 @@ const Orders = () => {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(deal)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {isPending(deal.status) && (
+                          {isActionable(deal.status) && (
                             <>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-success" onClick={() => handleApprove(deal.id)}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-success" title={nextAction(deal.status)?.label} onClick={() => handleTransition(deal.id, deal.status)}>
                                 <Check className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => openReject(deal.id)}>
@@ -390,11 +421,21 @@ const Orders = () => {
                 </div>
               </DialogHeader>
 
-              {/* Action Buttons */}
-              {isPending(selectedDeal.status) && (
-                <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground gap-1" onClick={() => handleApprove(selectedDeal.id)}>
-                    <Check className="h-4 w-4" /> Approve
+              {/* Status-aware action buttons */}
+              {isActionable(selectedDeal.status) && (
+                <div className="flex gap-2 flex-wrap items-center">
+                  {/* Show the full transition chain for context */}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mr-2">
+                    <Badge variant="outline" className={`text-[10px] ${getStatusColor(selectedDeal.status)}`}>
+                      {getStatusLabel(selectedDeal.status)}
+                    </Badge>
+                    <ChevronRight className="h-3 w-3" />
+                    <Badge variant="outline" className={`text-[10px] ${getStatusColor(nextAction(selectedDeal.status)!.status)}`}>
+                      {getStatusLabel(nextAction(selectedDeal.status)!.status)}
+                    </Badge>
+                  </div>
+                  <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground gap-1" onClick={() => handleTransition(selectedDeal.id, selectedDeal.status)}>
+                    <Check className="h-4 w-4" /> {nextAction(selectedDeal.status)?.label}
                   </Button>
                   <Button size="sm" variant="destructive" className="gap-1" onClick={() => openReject(selectedDeal.id)}>
                     <X className="h-4 w-4" /> Reject

@@ -41,7 +41,7 @@ const Dashboard = () => {
 
       const deals = dealsRes.data || [];
       const totalOrders = deals.length;
-      const pending = deals.filter(d => d.status === 'pending_admin' || d.status === 'pending').length;
+      const pending = deals.filter(d => d.status === 'pending_admin').length;
       const revenue = deals.filter(d => d.status === 'completed').reduce((sum, d) => sum + (d.deal_value || 0), 0);
       const activeAgents = agentsRes.data?.length || 0;
 
@@ -63,10 +63,11 @@ const Dashboard = () => {
   }, []);
 
   const handleApprove = async (dealId: string) => {
-    const { error } = await supabase.from('deals').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', dealId);
+    // Approve moves pending_admin → pending_wholesaler, not completed
+    const { error } = await supabase.from('deals').update({ status: 'pending_wholesaler' }).eq('id', dealId).eq('status', 'pending_admin');
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Order approved' });
-    setRecentDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'completed' } : d));
+    toast({ title: 'Order approved — awaiting wholesaler' });
+    setRecentDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'pending_wholesaler' } : d));
     setStats(prev => ({ ...prev, pending: prev.pending - 1 }));
   };
 
@@ -193,7 +194,7 @@ const Dashboard = () => {
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate('/orders')}>
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
-                          {(deal.status === 'pending_admin' || deal.status === 'pending') && (
+                          {deal.status === 'pending_admin' && (
                             <>
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success hover:bg-success/10" onClick={() => handleApprove(deal.id)}>
                                 <Check className="h-3.5 w-3.5" />

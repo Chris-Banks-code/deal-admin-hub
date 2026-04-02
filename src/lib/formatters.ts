@@ -21,19 +21,25 @@ export const formatPercent = (value: number | null | undefined): string => {
 
 export const getStatusColor = (status: string | null) => {
   switch (status) {
-    case 'completed': return 'bg-success/10 text-success border-success/20';
-    case 'pending': case 'pending_admin': return 'bg-warning/10 text-warning border-warning/20';
-    case 'rejected': return 'bg-destructive/10 text-destructive border-destructive/20';
-    default: return 'bg-muted text-muted-foreground';
+    case 'pending_admin':      return 'bg-warning/10 text-warning border-warning/20';
+    case 'pending_wholesaler': return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'confirmed':          return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'delivered':          return 'bg-accent/15 text-accent border-accent/30';
+    case 'completed':          return 'bg-success/10 text-success border-success/20';
+    case 'rejected':           return 'bg-destructive/10 text-destructive border-destructive/20';
+    default:                   return 'bg-muted text-muted-foreground';
   }
 };
 
 export const getStatusLabel = (status: string | null) => {
   switch (status) {
-    case 'completed': return 'Completed';
-    case 'pending': case 'pending_admin': return 'Pending';
-    case 'rejected': return 'Rejected';
-    default: return status || 'Unknown';
+    case 'pending_admin':      return 'Pending Approval';
+    case 'pending_wholesaler': return 'Pending Wholesaler';
+    case 'confirmed':          return 'Confirmed';
+    case 'delivered':          return 'Delivered';
+    case 'completed':          return 'Completed';
+    case 'rejected':           return 'Rejected';
+    default:                   return status || 'Unknown';
   }
 };
 
