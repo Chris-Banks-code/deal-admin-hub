@@ -137,7 +137,7 @@ const UsersPage = () => {
   };
 
   const toggleStatus = async (user: any) => {
-    const newStatus = user.status === 'active' ? 'suspended' : 'active';
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
     const { error } = await supabase.from('profiles').update({ status: newStatus }).eq('id', user.id);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: `User ${newStatus}` });
@@ -190,7 +190,7 @@ const UsersPage = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -304,7 +304,7 @@ const UsersPage = () => {
               </div>
             )}
             <div className="flex items-center gap-3">
-              <Switch checked={form.status === 'active'} onCheckedChange={c => setForm(f => ({ ...f, status: c ? 'active' : 'suspended' }))} />
+              <Switch checked={form.status === 'active'} onCheckedChange={c => setForm(f => ({ ...f, status: c ? 'active' : 'inactive' }))} />
               <Label>{form.status === 'active' ? 'Active' : 'Suspended'}</Label>
             </div>
           </div>
