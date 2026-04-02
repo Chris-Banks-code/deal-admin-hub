@@ -117,6 +117,7 @@ const UsersPage = () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           email: form.email.trim(),
@@ -153,6 +154,7 @@ const UsersPage = () => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session?.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({ userId: deletingUserId }),
     });
