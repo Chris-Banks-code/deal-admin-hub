@@ -44,7 +44,7 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const [dealsRes, recentRes, agentsRes] = await Promise.all([
-        supabase.from('deals').select('id, status, deal_value, agent_commission, supervisor_commission, operation_manager_commission, created_at'),
+        supabase.from('deals').select('id, status, deal_value, commission_amount, agent_commission, supervisor_commission, operation_manager_commission, created_at'),
         supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(6),
         supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
       ]);
@@ -74,9 +74,9 @@ const Dashboard = () => {
     const revenue = completed.reduce((s, d) => s + (d.deal_value || 0), 0);
     const totalCommissions = completed.reduce((s, d) =>
       s + (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0), 0);
-    // Company always takes 45% of deal_value — computed directly rather than
-    // via subtraction so null/rounding issues in commission columns don't skew it.
-    const companyProfit = completed.reduce((s, d) => s + (d.deal_value || 0) * 0.45, 0);
+    // Company profit = 45% of commission_amount (the brokerage fee earned per deal).
+    // commission_amount = deal_value × commission_rate — NOT the full deal_value.
+    const companyProfit = completed.reduce((s, d) => s + (d.commission_amount || 0) * 0.45, 0);
 
     return { totalOrders, pending, revenue, totalCommissions, companyProfit };
   }, [allDeals, dateRange]);
