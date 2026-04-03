@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Package, Clock, DollarSign, Users, Eye, Check, X, Plus, Box, FileText, TrendingUp, ArrowUpRight } from 'lucide-react';
+import { Package, Clock, DollarSign, Users, Eye, Check, X, Plus, Box, FileText, TrendingUp, ArrowUpRight, Wallet, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,13 +16,26 @@ import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/li
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 
+type DateRange = 'this_month' | 'last_30' | 'last_3m' | 'this_year' | 'all';
+
+const getDateCutoff = (range: DateRange): Date | null => {
+  const now = new Date();
+  if (range === 'this_month') return new Date(now.getFullYear(), now.getMonth(), 1);
+  if (range === 'last_30') { const d = new Date(); d.setDate(d.getDate() - 30); return d; }
+  if (range === 'last_3m') { const d = new Date(); d.setMonth(d.getMonth() - 3); return d; }
+  if (range === 'this_year') return new Date(now.getFullYear(), 0, 1);
+  return null; // all time
+};
+
 const Dashboard = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalOrders: 0, pending: 0, revenue: 0, activeAgents: 0 });
+  const [allDeals, setAllDeals] = useState<any[]>([]);
+  const [activeAgents, setActiveAgents] = useState(0);
   const [recentDeals, setRecentDeals] = useState<any[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange>('this_month');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectingDealId, setRejectingDealId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -30,9 +44,7 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const [dealsRes, recentRes, agentsRes] = await Promise.all([
-        // Stats query — only fetch columns needed for aggregation
-        supabase.from('deals').select('id, status, deal_value'),
-        // Recent deals — fetch only 6 rows from the DB
+        supabase.from('deals').select('id, status, deal_value, agent_commission, supervisor_commission, operation_manager_commission, created_at'),
         supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(6),
         supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
       ]);
@@ -40,19 +52,32 @@ const Dashboard = () => {
       if (dealsRes.error) console.error('Stats fetch error:', dealsRes.error);
       if (recentRes.error) console.error('Recent deals fetch error:', recentRes.error);
 
-      const deals = dealsRes.data || [];
-      const totalOrders = deals.length;
-      const pending = deals.filter(d => d.status === 'pending_admin').length;
-      const revenue = deals.filter(d => d.status === 'completed').reduce((sum, d) => sum + (d.deal_value || 0), 0);
-      const activeAgents = agentsRes.data?.length || 0;
-
-      setStats({ totalOrders, pending, revenue, activeAgents });
+      setAllDeals(dealsRes.data || []);
+      setActiveAgents(agentsRes.data?.length || 0);
       setRecentDeals(recentRes.data || []);
     } catch (err) {
       console.error(err);
     }
     setLoading(false);
   };
+
+  const stats = useMemo(() => {
+    const cutoff = getDateCutoff(dateRange);
+    const filtered = cutoff
+      ? allDeals.filter(d => new Date(d.created_at) >= cutoff)
+      : allDeals;
+
+    const totalOrders = filtered.length;
+    const pending = allDeals.filter(d => d.status === 'pending_admin').length; // always all-time count
+    const completed = filtered.filter(d => d.status === 'completed');
+
+    const revenue = completed.reduce((s, d) => s + (d.deal_value || 0), 0);
+    const totalCommissions = completed.reduce((s, d) =>
+      s + (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0), 0);
+    const companyProfit = revenue - totalCommissions;
+
+    return { totalOrders, pending, revenue, totalCommissions, companyProfit };
+  }, [allDeals, dateRange]);
 
   useEffect(() => { fetchData(); }, []);
   useRealtimeRefresh(['deals', 'profiles'], fetchData, 'dashboard-page');
@@ -63,7 +88,7 @@ const Dashboard = () => {
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Order approved — awaiting wholesaler' });
     setRecentDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'pending_wholesaler' } : d));
-    setStats(prev => ({ ...prev, pending: prev.pending - 1 }));
+    setAllDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'pending_wholesaler' } : d));
   };
 
   const openReject = (dealId: string) => {
@@ -79,30 +104,44 @@ const Dashboard = () => {
     toast({ title: 'Order rejected' });
     setShowRejectDialog(false);
     setRecentDeals(prev => prev.map(d => d.id === rejectingDealId ? { ...d, status: 'rejected' } : d));
-    setStats(prev => ({ ...prev, pending: prev.pending - 1 }));
+    setAllDeals(prev => prev.map(d => d.id === rejectingDealId ? { ...d, status: 'rejected' } : d));
     setRejectingDealId(null);
   };
 
   const statCards = [
-    { title: 'Total Orders', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary', trend: '+12%' },
-    { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', trend: null, badge: true },
-    { title: 'Total Revenue', value: formatCurrency(stats.revenue), icon: DollarSign, accent: 'bg-success/10 text-success', trend: '+8.3%' },
-    { title: 'Active Agents', value: stats.activeAgents, icon: Users, accent: 'bg-accent/10 text-accent', trend: '+2' },
+    { title: 'Total Orders', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary' },
+    { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', badge: true },
+    { title: 'Revenue', value: formatCurrency(stats.revenue), icon: DollarSign, accent: 'bg-success/10 text-success' },
+    { title: 'Commissions Paid', value: formatCurrency(stats.totalCommissions), icon: Wallet, accent: 'bg-accent/10 text-accent' },
+    { title: 'Company Profit', value: formatCurrency(stats.companyProfit), icon: Building2, accent: 'bg-primary/8 text-primary' },
+    { title: 'Active Agents', value: activeAgents, icon: Users, accent: 'bg-success/10 text-success' },
   ];
 
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-8">
-        {/* Welcome */}
-        <div className="animate-in-up">
+        {/* Welcome + date range */}
+        <div className="flex items-center justify-between animate-in-up">
           <p className="text-sm text-muted-foreground">Here's what's happening with your platform today.</p>
+          <Select value={dateRange} onValueChange={v => setDateRange(v as DateRange)}>
+            <SelectTrigger className="w-[160px] h-9 text-xs font-medium bg-card shadow-card border-border/50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="last_30">Last 30 Days</SelectItem>
+              <SelectItem value="last_3m">Last 3 Months</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {statCards.map((card, i) => (
             <Card key={card.title} className="shadow-card hover:shadow-premium transition-shadow duration-300 border-border/50 animate-in-up" style={{ animationDelay: `${i * 60}ms` }}>
-              <CardContent className="p-5">
+              <CardContent className="p-4">
                 {loading ? (
                   <div className="space-y-3">
                     <Skeleton className="h-4 w-24" />
@@ -110,23 +149,17 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{card.title}</p>
-                      <div className={`rounded-lg p-2 ${card.accent}`}>
-                        <card.icon className="h-4 w-4" />
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">{card.title}</p>
+                      <div className={`rounded-md p-1.5 ${card.accent}`}>
+                        <card.icon className="h-3 w-3" />
                       </div>
                     </div>
-                    <div className="flex items-end justify-between">
-                      <p className="text-2xl font-bold tracking-tight">{card.value}</p>
-                      {card.trend && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-success">
-                          <TrendingUp className="h-3 w-3" />
-                          {card.trend}
-                        </span>
-                      )}
-                      {card.badge && Number(card.value) > 0 && (
-                        <Badge className="bg-warning/15 text-warning border-warning/20 text-[10px] font-semibold">
-                          Needs review
+                    <div className="flex items-end justify-between gap-1">
+                      <p className="text-lg font-bold tracking-tight leading-none">{card.value}</p>
+                      {'badge' in card && card.badge && Number(card.value) > 0 && (
+                        <Badge className="bg-warning/15 text-warning border-warning/20 text-[9px] font-semibold px-1 py-0">
+                          Review
                         </Badge>
                       )}
                     </div>
