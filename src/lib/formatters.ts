@@ -1,6 +1,7 @@
-export const formatCurrency = (amount: number | null | undefined): string => {
-  if (amount == null) return '$0.00';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+export const formatCurrency = (amount: number | null | undefined, currency: string = 'USD'): string => {
+  if (amount == null) return `${currency} $0.00`;
+  const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  return `${currency} ${formatted}`;
 };
 
 export const formatDate = (date: string | null | undefined): string => {

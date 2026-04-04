@@ -350,8 +350,8 @@ const Orders = () => {
                       <TableCell className="hidden xl:table-cell text-sm">
                         {deal.has_multiple_products ? `${deal.total_items || 0} Products` : deal.product_name}
                       </TableCell>
-                      <TableCell className="text-sm font-medium">{formatCurrency(deal.deal_value)}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatCurrency(deal.agent_commission)}</TableCell>
+                      <TableCell className="text-sm font-medium">{formatCurrency(deal.deal_value, deal.currency)}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatCurrency(deal.agent_commission, deal.currency)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`text-xs ${getStatusColor(deal.status)}`}>
                           {getStatusLabel(deal.status)}
@@ -416,6 +416,9 @@ const Orders = () => {
                     <DialogDescription className="flex items-center gap-2 mt-1">
                       <Badge variant="outline" className={`${getStatusColor(selectedDeal.status)}`}>
                         {getStatusLabel(selectedDeal.status)}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs font-semibold bg-accent/10 text-accent border-accent/30">
+                        {selectedDeal.currency || 'USD'}
                       </Badge>
                       <span className="text-sm">{formatDate(selectedDeal.created_at)}</span>
                     </DialogDescription>
@@ -567,9 +570,9 @@ const Orders = () => {
                           <TableRow key={item.id}>
                             <TableCell className="text-sm">{item.product_name}</TableCell>
                             <TableCell className="text-sm">{item.quantity}</TableCell>
-                            <TableCell className="text-sm">{formatCurrency(item.unit_price)}</TableCell>
-                            <TableCell className="text-sm">{formatCurrency(item.subtotal)}</TableCell>
-                            <TableCell className="text-sm">{formatCurrency(item.commission_amount)}</TableCell>
+                            <TableCell className="text-sm">{formatCurrency(item.unit_price, selectedDeal.currency)}</TableCell>
+                            <TableCell className="text-sm">{formatCurrency(item.subtotal, selectedDeal.currency)}</TableCell>
+                            <TableCell className="text-sm">{formatCurrency(item.commission_amount, selectedDeal.currency)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -578,8 +581,8 @@ const Orders = () => {
                     <div className="text-sm space-y-1">
                       <div><span className="text-muted-foreground">Product:</span> {selectedDeal.product_name}</div>
                       <div><span className="text-muted-foreground">Quantity:</span> {selectedDeal.quantity || '—'}</div>
-                      <div><span className="text-muted-foreground">Unit Price:</span> {formatCurrency(selectedDeal.unit_price)}</div>
-                      <div><span className="text-muted-foreground">Total:</span> <span className="font-semibold">{formatCurrency(selectedDeal.deal_value)}</span></div>
+                      <div><span className="text-muted-foreground">Unit Price:</span> {formatCurrency(selectedDeal.unit_price, selectedDeal.currency)}</div>
+                      <div><span className="text-muted-foreground">Total:</span> <span className="font-semibold">{formatCurrency(selectedDeal.deal_value, selectedDeal.currency)}</span></div>
                     </div>
                   )}
                 </CardContent>
@@ -593,15 +596,15 @@ const Orders = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-2">
-                  <div className="flex justify-between"><span>Total Order Value</span><span className="font-semibold">{formatCurrency(selectedDeal.deal_value)}</span></div>
+                  <div className="flex justify-between"><span>Total Order Value</span><span className="font-semibold">{formatCurrency(selectedDeal.deal_value, selectedDeal.currency)}</span></div>
                   <Separator />
-                  <div className="flex justify-between"><span className="text-muted-foreground">Agent Commission{selectedDeal.deal_value ? ` (${((selectedDeal.agent_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.agent_commission)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Supervisor Override{selectedDeal.deal_value ? ` (${((selectedDeal.supervisor_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.supervisor_commission)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Op Manager Override{selectedDeal.deal_value ? ` (${((selectedDeal.operation_manager_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.operation_manager_commission)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Agent Commission{selectedDeal.deal_value ? ` (${((selectedDeal.agent_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.agent_commission, selectedDeal.currency)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Supervisor Override{selectedDeal.deal_value ? ` (${((selectedDeal.supervisor_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.supervisor_commission, selectedDeal.currency)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Op Manager Override{selectedDeal.deal_value ? ` (${((selectedDeal.operation_manager_commission || 0) / selectedDeal.deal_value * 100).toFixed(0)}%)` : ''}</span><span>{formatCurrency(selectedDeal.operation_manager_commission, selectedDeal.currency)}</span></div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Company Profit</span>
-                    <span>{formatCurrency((selectedDeal.deal_value || 0) - (selectedDeal.agent_commission || 0) - (selectedDeal.supervisor_commission || 0) - (selectedDeal.operation_manager_commission || 0))}</span>
+                    <span>{formatCurrency((selectedDeal.deal_value || 0) - (selectedDeal.agent_commission || 0) - (selectedDeal.supervisor_commission || 0) - (selectedDeal.operation_manager_commission || 0), selectedDeal.currency)}</span>
                   </div>
                 </CardContent>
               </Card>
