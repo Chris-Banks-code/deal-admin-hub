@@ -212,7 +212,7 @@ const Dashboard = () => {
                     <TableRow key={deal.id} className="group cursor-pointer" onClick={() => navigate('/orders')}>
                       <TableCell className="font-semibold text-sm">{deal.deal_number}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{deal.retailer_name || '—'}</TableCell>
-                      <TableCell className="text-sm font-medium">{formatCurrency(deal.deal_value)}</TableCell>
+                      <TableCell className="text-sm font-medium">{formatCurrency(deal.deal_value, deal.currency)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`text-[10px] font-semibold ${getStatusColor(deal.status)}`}>
                           {getStatusLabel(deal.status)}
