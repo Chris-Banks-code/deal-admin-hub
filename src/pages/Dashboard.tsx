@@ -44,7 +44,7 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const [dealsRes, recentRes, agentsRes] = await Promise.all([
-        supabase.from('deals').select('id, status, deal_value, commission_amount, agent_commission, supervisor_commission, operation_manager_commission, created_at'),
+        supabase.from('deals').select('id, status, deal_value, commission_amount, agent_commission, supervisor_commission, operation_manager_commission, created_at, currency'),
         supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(6),
         supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
       ]);
@@ -68,18 +68,28 @@ const Dashboard = () => {
       : allDeals;
 
     const totalOrders = filtered.length;
-    const pending = allDeals.filter(d => d.status === 'pending_admin').length; // always all-time count
+    const pending = allDeals.filter(d => d.status === 'pending_admin').length;
     const completed = filtered.filter(d => d.status === 'completed');
 
-    const revenue = completed.reduce((s, d) => s + (d.deal_value || 0), 0);
-    const totalCommissions = completed.reduce((s, d) =>
-      s + (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0), 0);
-    // Company profit = 45% of commission_amount (the brokerage fee earned per deal).
-    // commission_amount = deal_value × commission_rate — NOT the full deal_value.
-    const companyProfit = completed.reduce((s, d) => s + (d.commission_amount || 0) * 0.45, 0);
+    // Compute totals per currency so USD and LRD are never mixed
+    const byCurrency: Record<string, { revenue: number; commissions: number; profit: number }> = {};
+    for (const d of completed) {
+      const cur = d.currency || 'USD';
+      if (!byCurrency[cur]) byCurrency[cur] = { revenue: 0, commissions: 0, profit: 0 };
+      byCurrency[cur].revenue     += d.deal_value || 0;
+      byCurrency[cur].commissions += (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0);
+      byCurrency[cur].profit      += (d.commission_amount || 0) * 0.45;
+    }
 
-    return { totalOrders, pending, revenue, totalCommissions, companyProfit };
+    return { totalOrders, pending, byCurrency };
   }, [allDeals, dateRange]);
+
+  // Helper: render one or two currency lines for a given metric key
+  const currencyLines = (key: 'revenue' | 'commissions' | 'profit') => {
+    const entries = Object.entries(stats.byCurrency);
+    if (entries.length === 0) return formatCurrency(0);
+    return entries.map(([cur, vals]) => formatCurrency(vals[key], cur)).join(' | ');
+  };
 
   useEffect(() => { fetchData(); }, []);
   useRealtimeRefresh(['deals', 'profiles'], fetchData, 'dashboard-page');
@@ -113,9 +123,9 @@ const Dashboard = () => {
   const statCards = [
     { title: 'Total Orders', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary' },
     { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', badge: true },
-    { title: 'Revenue', value: formatCurrency(stats.revenue), icon: DollarSign, accent: 'bg-success/10 text-success' },
-    { title: 'Commissions Paid', value: formatCurrency(stats.totalCommissions), icon: Wallet, accent: 'bg-accent/10 text-accent' },
-    { title: 'Company Profit', value: formatCurrency(stats.companyProfit), icon: Building2, accent: 'bg-primary/8 text-primary' },
+    { title: 'Revenue', value: currencyLines('revenue'), icon: DollarSign, accent: 'bg-success/10 text-success' },
+    { title: 'Commissions Paid', value: currencyLines('commissions'), icon: Wallet, accent: 'bg-accent/10 text-accent' },
+    { title: 'Company Profit', value: currencyLines('profit'), icon: Building2, accent: 'bg-primary/8 text-primary' },
     { title: 'Active Agents', value: activeAgents, icon: Users, accent: 'bg-success/10 text-success' },
   ];
 
