@@ -136,7 +136,7 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
       case 3:
         return form.product_categories.length > 0 && !!form.payment_terms && !!form.delivery_options;
       case 4:
-        return !!(form.bank_name && form.account_name && form.account_number && form.default_commission_rate);
+        return true;
       default:
         return true;
     }
