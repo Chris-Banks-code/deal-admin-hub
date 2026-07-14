@@ -16,8 +16,6 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
-          account_name: string | null
-          account_number: string | null
           added_by_admin_id: string | null
           address: string | null
           admin_notes: string | null
@@ -30,55 +28,45 @@ export type Database = {
           business_license_url: string | null
           business_registration_number: string | null
           certifications: string | null
-          client_type: string
-          cold_storage: boolean | null
+          client_type: string | null
           cold_storage_available: boolean | null
           company_email: string | null
           company_name: string
           company_type: string | null
           company_website: string | null
-          contact_person: string
+          contact_person: string | null
           created_at: string | null
-          credit_period: number | null
           credit_period_days: number | null
           credit_references: string | null
           default_commission_rate: number | null
           delivery_coverage_areas: string | null
           delivery_options: string | null
           id: string
-          incorporation_cert_url: string | null
           incorporation_certificate_url: string | null
           latitude: number | null
           longitude: number | null
           minimum_order_value: number | null
-          no_mov: boolean | null
-          notes: string | null
           operating_hours: Json | null
           payment_terms: string | null
-          phone: string
+          phone: string | null
+          photo_urls: string[] | null
           price_list_url: string | null
           product_catalog_url: string | null
-          product_categories: string[] | null
-          secondary_contact_name: string | null
+          product_categories: Json | null
           secondary_contact_person: string | null
           secondary_contact_phone: string | null
           special_services: string | null
           status: string | null
-          storage_description: string | null
-          storage_facilities: boolean | null
           storage_facilities_available: boolean | null
           storage_facilities_description: string | null
           tax_certificate_url: string | null
           tax_id: string | null
-          updated_at: string | null
           verification_status: string | null
           verified_at: string | null
           verified_by_admin_id: string | null
           year_established: number | null
         }
         Insert: {
-          account_name?: string | null
-          account_number?: string | null
           added_by_admin_id?: string | null
           address?: string | null
           admin_notes?: string | null
@@ -91,55 +79,45 @@ export type Database = {
           business_license_url?: string | null
           business_registration_number?: string | null
           certifications?: string | null
-          client_type: string
-          cold_storage?: boolean | null
+          client_type?: string | null
           cold_storage_available?: boolean | null
           company_email?: string | null
           company_name: string
           company_type?: string | null
           company_website?: string | null
-          contact_person: string
+          contact_person?: string | null
           created_at?: string | null
-          credit_period?: number | null
           credit_period_days?: number | null
           credit_references?: string | null
           default_commission_rate?: number | null
           delivery_coverage_areas?: string | null
           delivery_options?: string | null
           id?: string
-          incorporation_cert_url?: string | null
           incorporation_certificate_url?: string | null
           latitude?: number | null
           longitude?: number | null
           minimum_order_value?: number | null
-          no_mov?: boolean | null
-          notes?: string | null
           operating_hours?: Json | null
           payment_terms?: string | null
-          phone: string
+          phone?: string | null
+          photo_urls?: string[] | null
           price_list_url?: string | null
           product_catalog_url?: string | null
-          product_categories?: string[] | null
-          secondary_contact_name?: string | null
+          product_categories?: Json | null
           secondary_contact_person?: string | null
           secondary_contact_phone?: string | null
           special_services?: string | null
           status?: string | null
-          storage_description?: string | null
-          storage_facilities?: boolean | null
           storage_facilities_available?: boolean | null
           storage_facilities_description?: string | null
           tax_certificate_url?: string | null
           tax_id?: string | null
-          updated_at?: string | null
           verification_status?: string | null
           verified_at?: string | null
           verified_by_admin_id?: string | null
           year_established?: number | null
         }
         Update: {
-          account_name?: string | null
-          account_number?: string | null
           added_by_admin_id?: string | null
           address?: string | null
           admin_notes?: string | null
@@ -152,47 +130,39 @@ export type Database = {
           business_license_url?: string | null
           business_registration_number?: string | null
           certifications?: string | null
-          client_type?: string
-          cold_storage?: boolean | null
+          client_type?: string | null
           cold_storage_available?: boolean | null
           company_email?: string | null
           company_name?: string
           company_type?: string | null
           company_website?: string | null
-          contact_person?: string
+          contact_person?: string | null
           created_at?: string | null
-          credit_period?: number | null
           credit_period_days?: number | null
           credit_references?: string | null
           default_commission_rate?: number | null
           delivery_coverage_areas?: string | null
           delivery_options?: string | null
           id?: string
-          incorporation_cert_url?: string | null
           incorporation_certificate_url?: string | null
           latitude?: number | null
           longitude?: number | null
           minimum_order_value?: number | null
-          no_mov?: boolean | null
-          notes?: string | null
           operating_hours?: Json | null
           payment_terms?: string | null
-          phone?: string
+          phone?: string | null
+          photo_urls?: string[] | null
           price_list_url?: string | null
           product_catalog_url?: string | null
-          product_categories?: string[] | null
-          secondary_contact_name?: string | null
+          product_categories?: Json | null
           secondary_contact_person?: string | null
           secondary_contact_phone?: string | null
           special_services?: string | null
           status?: string | null
-          storage_description?: string | null
-          storage_facilities?: boolean | null
           storage_facilities_available?: boolean | null
           storage_facilities_description?: string | null
           tax_certificate_url?: string | null
           tax_id?: string | null
-          updated_at?: string | null
           verification_status?: string | null
           verified_at?: string | null
           verified_by_admin_id?: string | null
@@ -200,8 +170,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "clients_added_by_admin_id_fkey"
+            columns: ["added_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clients_assigned_agent_id_fkey"
             columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_verified_by_admin_id_fkey"
+            columns: ["verified_by_admin_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -210,46 +194,36 @@ export type Database = {
       }
       commissions: {
         Row: {
-          agent_id: string
-          amount: number
+          amount: number | null
+          commission_type: string | null
           created_at: string | null
-          deal_id: string
+          deal_id: string | null
           id: string
           paid_at: string | null
-          payment_method: string | null
-          payment_reference: string | null
+          profile_id: string | null
           status: string | null
         }
         Insert: {
-          agent_id: string
-          amount: number
+          amount?: number | null
+          commission_type?: string | null
           created_at?: string | null
-          deal_id: string
+          deal_id?: string | null
           id?: string
           paid_at?: string | null
-          payment_method?: string | null
-          payment_reference?: string | null
+          profile_id?: string | null
           status?: string | null
         }
         Update: {
-          agent_id?: string
-          amount?: number
+          amount?: number | null
+          commission_type?: string | null
           created_at?: string | null
-          deal_id?: string
+          deal_id?: string | null
           id?: string
           paid_at?: string | null
-          payment_method?: string | null
-          payment_reference?: string | null
+          profile_id?: string | null
           status?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "commissions_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "commissions_deal_id_fkey"
             columns: ["deal_id"]
@@ -257,112 +231,86 @@ export type Database = {
             referencedRelation: "deals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "commissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       deals: {
         Row: {
-          admin_notes: string | null
-          agent_commission: number
-          agent_id: string
-          agent_notes: string | null
+          agent_commission: number | null
+          agent_id: string | null
           commission_amount: number | null
           commission_rate: number | null
-          completed_at: string | null
-          confirmed_at: string | null
           created_at: string | null
-          deal_number: string
-          deal_value: number
-          delivered_at: string | null
+          deal_number: string | null
+          deal_value: number | null
           delivery_address: string | null
           delivery_date: string | null
           has_multiple_products: boolean | null
           id: string
           notes: string | null
           operation_manager_commission: number | null
-          operation_manager_id: string | null
-          product_commission_rate: number | null
-          product_name: string
-          quantity: string | null
-          rejection_reason: string | null
-          retailer_id: string
+          product_name: string | null
+          quantity: number | null
+          retailer_id: string | null
           retailer_name: string | null
           status: string | null
           supervisor_commission: number | null
-          supervisor_id: string | null
           total_items: number | null
           unit_price: number | null
-          updated_at: string | null
-          wholesaler_id: string
           wholesaler_name: string | null
         }
         Insert: {
-          admin_notes?: string | null
-          agent_commission: number
-          agent_id: string
-          agent_notes?: string | null
+          agent_commission?: number | null
+          agent_id?: string | null
           commission_amount?: number | null
           commission_rate?: number | null
-          completed_at?: string | null
-          confirmed_at?: string | null
           created_at?: string | null
-          deal_number: string
-          deal_value: number
-          delivered_at?: string | null
+          deal_number?: string | null
+          deal_value?: number | null
           delivery_address?: string | null
           delivery_date?: string | null
           has_multiple_products?: boolean | null
           id?: string
           notes?: string | null
           operation_manager_commission?: number | null
-          operation_manager_id?: string | null
-          product_commission_rate?: number | null
-          product_name: string
-          quantity?: string | null
-          rejection_reason?: string | null
-          retailer_id: string
+          product_name?: string | null
+          quantity?: number | null
+          retailer_id?: string | null
           retailer_name?: string | null
           status?: string | null
           supervisor_commission?: number | null
-          supervisor_id?: string | null
           total_items?: number | null
           unit_price?: number | null
-          updated_at?: string | null
-          wholesaler_id: string
           wholesaler_name?: string | null
         }
         Update: {
-          admin_notes?: string | null
-          agent_commission?: number
-          agent_id?: string
-          agent_notes?: string | null
+          agent_commission?: number | null
+          agent_id?: string | null
           commission_amount?: number | null
           commission_rate?: number | null
-          completed_at?: string | null
-          confirmed_at?: string | null
           created_at?: string | null
-          deal_number?: string
-          deal_value?: number
-          delivered_at?: string | null
+          deal_number?: string | null
+          deal_value?: number | null
           delivery_address?: string | null
           delivery_date?: string | null
           has_multiple_products?: boolean | null
           id?: string
           notes?: string | null
           operation_manager_commission?: number | null
-          operation_manager_id?: string | null
-          product_commission_rate?: number | null
-          product_name?: string
-          quantity?: string | null
-          rejection_reason?: string | null
-          retailer_id?: string
+          product_name?: string | null
+          quantity?: number | null
+          retailer_id?: string | null
           retailer_name?: string | null
           status?: string | null
           supervisor_commission?: number | null
-          supervisor_id?: string | null
           total_items?: number | null
           unit_price?: number | null
-          updated_at?: string | null
-          wholesaler_id?: string
           wholesaler_name?: string | null
         }
         Relationships: [
@@ -374,29 +322,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "deals_operation_manager_id_fkey"
-            columns: ["operation_manager_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "deals_retailer_id_fkey"
             columns: ["retailer_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deals_supervisor_id_fkey"
-            columns: ["supervisor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deals_wholesaler_id_fkey"
-            columns: ["wholesaler_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
@@ -405,46 +332,43 @@ export type Database = {
       }
       order_items: {
         Row: {
-          commission_amount: number
-          commission_rate: number
-          created_at: string | null
-          deal_id: string
+          commission_amount: number | null
+          commission_rate: number | null
+          deal_id: string | null
           id: string
-          product_id: string
-          product_name: string
-          quantity: number
-          subtotal: number
-          unit_price: number
+          product_id: string | null
+          product_name: string | null
+          quantity: number | null
+          subtotal: number | null
+          unit_price: number | null
           wholesaler_id: string | null
           wholesaler_location_id: string | null
           wholesaler_name: string | null
         }
         Insert: {
-          commission_amount: number
-          commission_rate: number
-          created_at?: string | null
-          deal_id: string
+          commission_amount?: number | null
+          commission_rate?: number | null
+          deal_id?: string | null
           id?: string
-          product_id: string
-          product_name: string
-          quantity: number
-          subtotal: number
-          unit_price: number
+          product_id?: string | null
+          product_name?: string | null
+          quantity?: number | null
+          subtotal?: number | null
+          unit_price?: number | null
           wholesaler_id?: string | null
           wholesaler_location_id?: string | null
           wholesaler_name?: string | null
         }
         Update: {
-          commission_amount?: number
-          commission_rate?: number
-          created_at?: string | null
-          deal_id?: string
+          commission_amount?: number | null
+          commission_rate?: number | null
+          deal_id?: string | null
           id?: string
-          product_id?: string
-          product_name?: string
-          quantity?: number
-          subtotal?: number
-          unit_price?: number
+          product_id?: string | null
+          product_name?: string | null
+          quantity?: number | null
+          subtotal?: number | null
+          unit_price?: number | null
           wholesaler_id?: string | null
           wholesaler_location_id?: string | null
           wholesaler_name?: string | null
@@ -471,6 +395,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "order_items_wholesaler_location_id_fkey"
+            columns: ["wholesaler_location_id"]
+            isOneToOne: false
+            referencedRelation: "wholesaler_locations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       products: {
@@ -478,54 +409,36 @@ export type Database = {
           category: string | null
           commission_rate: number | null
           created_at: string | null
-          description: string | null
-          distance_from_retailer: number | null
           id: string
-          minimum_order: number | null
-          product_name: string
-          status: string | null
-          stock_available: number | null
+          is_active: boolean | null
+          name: string
           stock_quantity: number | null
-          unit_price: number
-          unit_type: string
-          updated_at: string | null
-          wholesaler_id: string
+          unit_price: number | null
+          wholesaler_id: string | null
           wholesaler_location_id: string | null
         }
         Insert: {
           category?: string | null
           commission_rate?: number | null
           created_at?: string | null
-          description?: string | null
-          distance_from_retailer?: number | null
           id?: string
-          minimum_order?: number | null
-          product_name: string
-          status?: string | null
-          stock_available?: number | null
+          is_active?: boolean | null
+          name: string
           stock_quantity?: number | null
-          unit_price: number
-          unit_type: string
-          updated_at?: string | null
-          wholesaler_id: string
+          unit_price?: number | null
+          wholesaler_id?: string | null
           wholesaler_location_id?: string | null
         }
         Update: {
           category?: string | null
           commission_rate?: number | null
           created_at?: string | null
-          description?: string | null
-          distance_from_retailer?: number | null
           id?: string
-          minimum_order?: number | null
-          product_name?: string
-          status?: string | null
-          stock_available?: number | null
+          is_active?: boolean | null
+          name?: string
           stock_quantity?: number | null
-          unit_price?: number
-          unit_type?: string
-          updated_at?: string | null
-          wholesaler_id?: string
+          unit_price?: number | null
+          wholesaler_id?: string | null
           wholesaler_location_id?: string | null
         }
         Relationships: [
@@ -548,51 +461,38 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
-          email: string
-          full_name: string
+          email: string | null
+          full_name: string | null
           id: string
-          operation_manager_id: string | null
-          phone: string
+          phone: string | null
           push_token: string | null
-          role: string
+          role: string | null
           status: string | null
           supervisor_id: string | null
-          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
-          email: string
-          full_name: string
+          email?: string | null
+          full_name?: string | null
           id: string
-          operation_manager_id?: string | null
-          phone: string
+          phone?: string | null
           push_token?: string | null
-          role: string
+          role?: string | null
           status?: string | null
           supervisor_id?: string | null
-          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
-          email?: string
-          full_name?: string
+          email?: string | null
+          full_name?: string | null
           id?: string
-          operation_manager_id?: string | null
-          phone?: string
+          phone?: string | null
           push_token?: string | null
-          role?: string
+          role?: string | null
           status?: string | null
           supervisor_id?: string | null
-          updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "profiles_operation_manager_id_fkey"
-            columns: ["operation_manager_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
             columns: ["supervisor_id"]
@@ -604,40 +504,40 @@ export type Database = {
       }
       wholesaler_locations: {
         Row: {
-          address: string
-          branch_name: string
+          address: string | null
+          branch_manager_name: string | null
+          branch_name: string | null
+          branch_phone: string | null
           created_at: string | null
           id: string
           is_primary: boolean | null
-          latitude: number
-          longitude: number
-          status: string | null
-          updated_at: string | null
-          wholesaler_id: string
+          latitude: number | null
+          longitude: number | null
+          wholesaler_id: string | null
         }
         Insert: {
-          address: string
-          branch_name: string
+          address?: string | null
+          branch_manager_name?: string | null
+          branch_name?: string | null
+          branch_phone?: string | null
           created_at?: string | null
           id?: string
           is_primary?: boolean | null
-          latitude: number
-          longitude: number
-          status?: string | null
-          updated_at?: string | null
-          wholesaler_id: string
+          latitude?: number | null
+          longitude?: number | null
+          wholesaler_id?: string | null
         }
         Update: {
-          address?: string
-          branch_name?: string
+          address?: string | null
+          branch_manager_name?: string | null
+          branch_name?: string | null
+          branch_phone?: string | null
           created_at?: string | null
           id?: string
           is_primary?: boolean | null
-          latitude?: number
-          longitude?: number
-          status?: string | null
-          updated_at?: string | null
-          wholesaler_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          wholesaler_id?: string | null
         }
         Relationships: [
           {
@@ -654,16 +554,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      calculate_deal_commissions: {
-        Args: { p_deal_id: string }
-        Returns: undefined
-      }
-      calculate_distance: {
-        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
-        Returns: number
-      }
-      is_admin: { Args: never; Returns: boolean }
-      is_admin_or_manager: { Args: never; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

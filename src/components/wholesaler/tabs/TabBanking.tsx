@@ -15,7 +15,7 @@ export const TabBanking = ({ form, updateForm }: Props) => (
       <h3 className="text-lg font-semibold text-foreground mb-4">Banking Information</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Bank Name <span className="text-destructive">*</span></Label>
+          <Label>Bank Name</Label>
           <Select value={form.bank_name} onValueChange={v => updateForm({ bank_name: v })}>
             <SelectTrigger><SelectValue placeholder="Select bank" /></SelectTrigger>
             <SelectContent>
@@ -24,11 +24,11 @@ export const TabBanking = ({ form, updateForm }: Props) => (
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Account Name <span className="text-destructive">*</span></Label>
+          <Label>Account Name</Label>
           <Input value={form.account_name} onChange={e => updateForm({ account_name: e.target.value })} />
         </div>
         <div className="space-y-2">
-          <Label>Account Number <span className="text-destructive">*</span></Label>
+          <Label>Account Number</Label>
           <Input value={form.account_number} onChange={e => updateForm({ account_number: e.target.value })} />
         </div>
         <div className="space-y-2">
@@ -36,13 +36,14 @@ export const TabBanking = ({ form, updateForm }: Props) => (
           <Input value={form.bank_branch} onChange={e => updateForm({ bank_branch: e.target.value })} />
         </div>
       </div>
+      <p className="text-xs text-muted-foreground mt-2">All banking fields are optional and can be added later.</p>
     </div>
 
     <div>
       <h3 className="text-lg font-semibold text-foreground mb-4">Commission & Pricing</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Default Commission Rate (%) <span className="text-destructive">*</span></Label>
+          <Label>Default Commission Rate (%)</Label>
           <Input type="number" min={0} max={100} step={0.1} value={form.default_commission_rate} onChange={e => updateForm({ default_commission_rate: e.target.value })} placeholder="e.g., 5.5" />
         </div>
         <div className="space-y-2">
