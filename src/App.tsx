@@ -15,8 +15,19 @@ import ClientsPage from "./pages/Clients";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import TargetsPage from "./pages/Targets";
+import ComingSoon from "./pages/ComingSoon";
+import { MODULES } from "./lib/erp-modules";
 
 const queryClient = new QueryClient();
+
+// Modules that already have a real page — everything else routes to ComingSoon.
+const REAL_ROUTES: Record<string, boolean> = {
+  '/dashboard': true,
+  '/orders': true,
+  '/analytics': true,
+  '/products': true,
+  '/customers': true, // Clients page reused as Customers
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -29,13 +40,33 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+
+            {/* Real pages */}
+            <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><Dashboard /></ProtectedRoute>} />
+            <Route path="/orders" element={<ProtectedRoute module="orders"><Orders /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute module="analytics"><Analytics /></ProtectedRoute>} />
+            <Route path="/products" element={<ProtectedRoute module="products"><ProductsPage /></ProtectedRoute>} />
+            <Route path="/customers" element={<ProtectedRoute module="customers"><ClientsPage /></ProtectedRoute>} />
+            {/* Legacy alias */}
+            <Route path="/clients" element={<Navigate to="/customers" replace />} />
+
+            {/* Users / Targets (legacy admin pages, kept accessible) */}
             <Route path="/users" element={<ProtectedRoute adminOnly><UsersPage /></ProtectedRoute>} />
-            <Route path="/products" element={<ProtectedRoute adminOnly><ProductsPage /></ProtectedRoute>} />
-            <Route path="/clients" element={<ProtectedRoute adminOnly><ClientsPage /></ProtectedRoute>} />
             <Route path="/targets" element={<ProtectedRoute><TargetsPage /></ProtectedRoute>} />
+
+            {/* Stubbed modules — auto-registered from the module registry */}
+            {MODULES.filter(m => !REAL_ROUTES[m.url]).map(m => (
+              <Route
+                key={m.url}
+                path={m.url}
+                element={
+                  <ProtectedRoute module={m.key}>
+                    <ComingSoon title={m.title} description={m.description} features={m.features} />
+                  </ProtectedRoute>
+                }
+              />
+            ))}
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
