@@ -150,7 +150,7 @@ const Orders = () => {
     setDealWholesaler(null);
 
     // Fetch all related data in parallel
-    const fetches: Promise<any>[] = [];
+    const fetches: PromiseLike<any>[] = [];
 
     if (deal.has_multiple_products) {
       fetches.push(
@@ -185,7 +185,7 @@ const Orders = () => {
 
   const saveAdminNotes = async () => {
     if (!selectedDeal) return;
-    const { error } = await supabase.from('deals').update({ admin_notes: adminNotes }).eq('id', selectedDeal.id);
+    const { error } = await supabase.from('deals').update({ notes: adminNotes } as any).eq('id', selectedDeal.id);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Notes saved' });
     setDeals(prev => prev.map(d => d.id === selectedDeal.id ? { ...d, admin_notes: adminNotes } : d));

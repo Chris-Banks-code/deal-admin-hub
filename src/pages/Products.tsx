@@ -112,7 +112,7 @@ const ProductsPage = () => {
       if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setSaving(false); return; }
       toast({ title: 'Product updated' });
     } else {
-      const { error } = await supabase.from('products').insert(data);
+      const { error } = await supabase.from('products').insert(data as any);
       if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setSaving(false); return; }
       toast({ title: 'Product created' });
     }

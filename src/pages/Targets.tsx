@@ -145,7 +145,7 @@ const TargetsPage = () => {
 
     const [agentsRes, targetsRes, earningsRes, retailersRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, role').in('role', ['agent', 'supervisor']).eq('status', 'active').order('full_name'),
-      supabase.from('monthly_targets').select('*').eq('month', month),
+      (supabase.from as any)('monthly_targets').select('*').eq('month', month),
       supabase.from('deals').select('agent_id, agent_commission').eq('status', 'completed').gte('created_at', start).lt('created_at', end),
       supabase.from('clients').select('assigned_agent_id').gte('created_at', start).lt('created_at', end),
     ]);
@@ -265,7 +265,7 @@ const TargetsPage = () => {
     }
 
     setSaving(true);
-    const { error } = await supabase.from('monthly_targets').upsert({
+    const { error } = await (supabase.from as any)('monthly_targets').upsert({
       agent_id: form.agent_id,
       target_amount: amount,
       onboarding_target: onboarding,
@@ -312,7 +312,7 @@ const TargetsPage = () => {
       return;
     }
 
-    const { error } = await supabase.from('monthly_targets').upsert(targets, { onConflict: 'agent_id,month' });
+    const { error } = await (supabase.from as any)('monthly_targets').upsert(targets, { onConflict: 'agent_id,month' });
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setBulkSaving(false); return; }
     toast({ title: `Targets set for ${targets.length} agent(s)` });
     setBulkSaving(false);
@@ -327,7 +327,7 @@ const TargetsPage = () => {
 
   const handleDelete = async () => {
     if (!deletingAgent) return;
-    const { error } = await supabase.from('monthly_targets').delete().eq('agent_id', deletingAgent.id).eq('month', month);
+    const { error } = await (supabase.from as any)('monthly_targets').delete().eq('agent_id', deletingAgent.id).eq('month', month);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); setDeletingAgent(null); return; }
     toast({ title: 'Target removed' });
     setDeletingAgent(null);
