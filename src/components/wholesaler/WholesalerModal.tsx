@@ -46,8 +46,21 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
     }
   }, [open, editingWholesaler]);
 
-  const fetchBranches = async (wholesalerId: string) => {
-    const { data } = await supabase.from('wholesaler_locations').select('*').eq('wholesaler_id', wholesalerId);
+  const fetchBranches = async (partyId: string) => {
+    // Look up supplier by party_id, then load its supplier_locations
+    const { data: supplier } = await supabase
+      .from('suppliers')
+      .select('id')
+      .eq('party_id', partyId)
+      .maybeSingle();
+    if (!supplier) {
+      setExistingBranches([]);
+      return;
+    }
+    const { data } = await supabase
+      .from('supplier_locations')
+      .select('*')
+      .eq('supplier_id', supplier.id);
     setExistingBranches(data || []);
     if (data && data.length > 0) {
       setForm(f => ({
@@ -56,14 +69,15 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
           id: b.id,
           branch_name: b.branch_name || '',
           address: b.address || '',
-          phone: '',
-          manager_name: '',
+          phone: b.branch_phone || '',
+          manager_name: b.branch_manager_name || '',
           latitude: b.latitude?.toString() || '',
           longitude: b.longitude?.toString() || '',
         })),
       }));
     }
   };
+
 
   const populateForm = (w: any) => {
     const hours = w.operating_hours || {};
