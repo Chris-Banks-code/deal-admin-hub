@@ -48,8 +48,10 @@ const App = () => (
             <Route path="/orders" element={<ProtectedRoute module="orders"><Orders /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute module="analytics"><Analytics /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute module="products"><ProductsPage /></ProtectedRoute>} />
-            <Route path="/customers" element={<ProtectedRoute module="customers"><ClientsPage /></ProtectedRoute>} />
+            <Route path="/agents" element={<ProtectedRoute module="agents"><AgentsPage /></ProtectedRoute>} />
             {/* Legacy alias */}
+            <Route path="/clients" element={<Navigate to="/customers" replace />} />
+
             <Route path="/clients" element={<Navigate to="/customers" replace />} />
 
             {/* Users / Targets (legacy admin pages, kept accessible) */}
