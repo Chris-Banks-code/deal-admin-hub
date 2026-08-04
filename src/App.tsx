@@ -16,6 +16,7 @@ import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import TargetsPage from "./pages/Targets";
 import ComingSoon from "./pages/ComingSoon";
+import AgentsPage from "./pages/Agents";
 import { MODULES } from "./lib/erp-modules";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const REAL_ROUTES: Record<string, boolean> = {
   '/analytics': true,
   '/products': true,
   '/customers': true, // Clients page reused as Customers
+  '/agents': true,
 };
 
 const App = () => (
