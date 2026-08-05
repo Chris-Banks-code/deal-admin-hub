@@ -1,7 +1,9 @@
+const CURRENCY_SYMBOLS: Record<string, string> = { USD: '$', LRD: 'L$' };
+
 export const formatCurrency = (amount: number | null | undefined, currency: string = 'USD'): string => {
-  if (amount == null) return `${currency} $0.00`;
-  const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  return `${currency} ${formatted}`;
+  const symbol = CURRENCY_SYMBOLS[currency] ?? '';
+  const value = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount ?? 0);
+  return `${currency} ${symbol}${value}`;
 };
 
 export const formatDate = (date: string | null | undefined): string => {
