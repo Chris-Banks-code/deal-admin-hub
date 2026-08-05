@@ -8,13 +8,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, Edit2, UserX, UserCheck, Users2, ShieldCheck, Activity } from 'lucide-react';
+import { Search, Plus, Edit2, UserX, UserCheck, Users2, ShieldCheck, Activity, KeyRound, Trash2 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 import { getInitials, getRoleBadgeColor, getRoleLabel } from '@/lib/formatters';
 import { AgentModal, type AgentProfile } from '@/components/agents/AgentModal';
 import { AgentDetailSheet } from '@/components/agents/AgentDetailSheet';
+import { ResetPasswordDialog } from '@/components/agents/ResetPasswordDialog';
 
 export default function AgentsPage() {
   const { toast } = useToast();
@@ -28,6 +33,9 @@ export default function AgentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AgentProfile | null>(null);
   const [detail, setDetail] = useState<AgentProfile | null>(null);
+  const [pwAgent, setPwAgent] = useState<AgentProfile | null>(null);
+  const [deleting, setDeleting] = useState<AgentProfile | null>(null);
+  const [deletingBusy, setDeletingBusy] = useState(false);
 
   const fetchAgents = async () => {
     setLoading(true);
@@ -82,6 +90,32 @@ export default function AgentsPage() {
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: next === 'active' ? 'Agent reactivated' : 'Agent suspended' });
     fetchAgents();
+  };
+
+  const deleteAgent = async () => {
+    if (!deleting) return;
+    setDeletingBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ userId: deleting.id }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(result?.error || 'Failed to delete agent');
+      toast({ title: 'Agent deleted' });
+      setDeleting(null);
+      fetchAgents();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+      setDeletingBusy(false);
+    }
   };
 
   const statCards = [
@@ -198,8 +232,14 @@ export default function AgentsPage() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(a); setModalOpen(true); }}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Reset password" onClick={() => setPwAgent(a)}>
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStatus(a)}>
                             {(a.status || 'active') === 'active' ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete agent" onClick={() => setDeleting(a)}>
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -224,6 +264,32 @@ export default function AgentsPage() {
         supervisorName={detail?.supervisor_id ? nameById[detail.supervisor_id] : null}
         onOpenChange={open => { if (!open) setDetail(null); }}
       />
+      <ResetPasswordDialog
+        agent={pwAgent}
+        open={!!pwAgent}
+        onOpenChange={open => { if (!open) setPwAgent(null); }}
+      />
+      <AlertDialog open={!!deleting} onOpenChange={open => { if (!open) setDeleting(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleting?.full_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes their login and profile. Assigned customers and past
+              orders remain, but will no longer link to an active agent. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletingBusy}
+              onClick={e => { e.preventDefault(); deleteAgent(); }}
+            >
+              {deletingBusy ? 'Deleting…' : 'Delete Agent'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
