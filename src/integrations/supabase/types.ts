@@ -561,6 +561,7 @@ export type Database = {
           category: string | null
           commission_rate: number | null
           created_at: string | null
+          currency: string
           id: string
           is_active: boolean | null
           name: string
@@ -573,6 +574,7 @@ export type Database = {
           category?: string | null
           commission_rate?: number | null
           created_at?: string | null
+          currency?: string
           id?: string
           is_active?: boolean | null
           name: string
@@ -585,6 +587,7 @@ export type Database = {
           category?: string | null
           commission_rate?: number | null
           created_at?: string | null
+          currency?: string
           id?: string
           is_active?: boolean | null
           name?: string
