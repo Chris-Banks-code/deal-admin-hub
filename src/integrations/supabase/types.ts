@@ -82,6 +82,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           minimum_order_value: number | null
+          notes: string | null
           operating_hours: Json | null
           payment_terms: string | null
           phone: string | null
@@ -133,6 +134,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           minimum_order_value?: number | null
+          notes?: string | null
           operating_hours?: Json | null
           payment_terms?: string | null
           phone?: string | null
@@ -184,6 +186,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           minimum_order_value?: number | null
+          notes?: string | null
           operating_hours?: Json | null
           payment_terms?: string | null
           phone?: string | null
