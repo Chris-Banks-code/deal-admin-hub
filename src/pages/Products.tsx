@@ -21,7 +21,6 @@ interface ProductForm {
   product_name: string;
   category: string;
   unit_price: string;
-  unit_type: string;
   commission_rate: string;
   wholesaler_id: string;
   wholesaler_location_id: string;
@@ -30,7 +29,7 @@ interface ProductForm {
 }
 
 const emptyForm: ProductForm = {
-  product_name: '', category: '', unit_price: '', unit_type: 'unit',
+  product_name: '', category: '', unit_price: '',
   commission_rate: '4', wholesaler_id: '', wholesaler_location_id: '',
   stock_quantity: '0', status: 'available',
 };
@@ -69,7 +68,7 @@ const ProductsPage = () => {
 
   const filtered = useMemo(() => {
     return products.filter(p => {
-      const matchSearch = !search || p.product_name?.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = !search || p.name?.toLowerCase().includes(search.toLowerCase());
       const matchCategory = categoryFilter === 'all' || p.category === categoryFilter;
       return matchSearch && matchCategory;
     });
@@ -81,10 +80,10 @@ const ProductsPage = () => {
   const openEdit = (p: any) => {
     setEditingProduct(p);
     setForm({
-      product_name: p.product_name, category: p.category || '', unit_price: String(p.unit_price),
-      unit_type: p.unit_type, commission_rate: String(p.commission_rate || 4),
-      wholesaler_id: p.wholesaler_id, wholesaler_location_id: p.wholesaler_location_id || '',
-      stock_quantity: String(p.stock_quantity || 0), status: p.status || 'available',
+      product_name: p.name, category: p.category || '', unit_price: String(p.unit_price ?? ''),
+      commission_rate: String(p.commission_rate ?? 4),
+      wholesaler_id: p.wholesaler_id || '', wholesaler_location_id: p.wholesaler_location_id || '',
+      stock_quantity: String(p.stock_quantity || 0), status: p.is_active === false ? 'inactive' : 'available',
     });
     setShowModal(true);
   };
@@ -96,15 +95,14 @@ const ProductsPage = () => {
     }
     setSaving(true);
     const data = {
-      product_name: form.product_name.trim(),
+      name: form.product_name.trim(),
       category: form.category || null,
       unit_price: Number(form.unit_price),
-      unit_type: form.unit_type,
       commission_rate: Number(form.commission_rate),
       wholesaler_id: form.wholesaler_id,
       wholesaler_location_id: form.wholesaler_location_id || null,
       stock_quantity: Number(form.stock_quantity) || 0,
-      status: form.status,
+      is_active: form.status === 'available',
     };
 
     if (editingProduct) {
@@ -176,15 +174,15 @@ const ProductsPage = () => {
                 <TableBody>
                   {filtered.map(p => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium text-sm">{p.product_name}</TableCell>
+                      <TableCell className="font-medium text-sm">{p.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{p.category || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{getWholesalerName(p.wholesaler_id)}</TableCell>
                       <TableCell className="text-sm">{formatCurrency(p.unit_price)}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{formatPercent(p.commission_rate)}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{p.stock_quantity || 0}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-xs ${p.status === 'available' ? 'bg-success/10 text-success border-success/20' : 'bg-muted text-muted-foreground'}`}>
-                          {p.status === 'available' ? 'Active' : 'Inactive'}
+                        <Badge variant="outline" className={`text-xs ${p.is_active !== false ? 'bg-success/10 text-success border-success/20' : 'bg-muted text-muted-foreground'}`}>
+                          {p.is_active !== false ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -211,10 +209,7 @@ const ProductsPage = () => {
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2"><Label>Product Name *</Label><Input value={form.product_name} onChange={e => setForm(f => ({ ...f, product_name: e.target.value }))} /></div>
             <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Unit Price *</Label><Input type="number" value={form.unit_price} onChange={e => setForm(f => ({ ...f, unit_price: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Unit Type</Label><Input value={form.unit_type} onChange={e => setForm(f => ({ ...f, unit_type: e.target.value }))} /></div>
-            </div>
+            <div className="space-y-2"><Label>Unit Price *</Label><Input type="number" value={form.unit_price} onChange={e => setForm(f => ({ ...f, unit_price: e.target.value }))} /></div>
             <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={form.commission_rate} onChange={e => setForm(f => ({ ...f, commission_rate: e.target.value }))} /></div>
             <div className="space-y-2">
               <Label>Wholesaler *</Label>
