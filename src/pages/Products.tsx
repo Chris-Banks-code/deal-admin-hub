@@ -21,6 +21,7 @@ interface ProductForm {
   product_name: string;
   category: string;
   unit_price: string;
+  currency: string;
   commission_rate: string;
   wholesaler_id: string;
   wholesaler_location_id: string;
@@ -29,7 +30,7 @@ interface ProductForm {
 }
 
 const emptyForm: ProductForm = {
-  product_name: '', category: '', unit_price: '',
+  product_name: '', category: '', unit_price: '', currency: 'LRD',
   commission_rate: '4', wholesaler_id: '', wholesaler_location_id: '',
   stock_quantity: '0', status: 'available',
 };
@@ -80,7 +81,7 @@ const ProductsPage = () => {
   const openEdit = (p: any) => {
     setEditingProduct(p);
     setForm({
-      product_name: p.name, category: p.category || '', unit_price: String(p.unit_price ?? ''),
+      product_name: p.name, category: p.category || '', unit_price: String(p.unit_price ?? ''), currency: p.currency || 'LRD',
       commission_rate: String(p.commission_rate ?? 4),
       wholesaler_id: p.wholesaler_id || '', wholesaler_location_id: p.wholesaler_location_id || '',
       stock_quantity: String(p.stock_quantity || 0), status: p.is_active === false ? 'inactive' : 'available',
@@ -98,6 +99,7 @@ const ProductsPage = () => {
       name: form.product_name.trim(),
       category: form.category || null,
       unit_price: Number(form.unit_price),
+      currency: form.currency,
       commission_rate: Number(form.commission_rate),
       wholesaler_id: form.wholesaler_id,
       wholesaler_location_id: form.wholesaler_location_id || null,
@@ -177,7 +179,7 @@ const ProductsPage = () => {
                       <TableCell className="font-medium text-sm">{p.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{p.category || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{getWholesalerName(p.wholesaler_id)}</TableCell>
-                      <TableCell className="text-sm">{formatCurrency(p.unit_price)}</TableCell>
+                      <TableCell className="text-sm">{formatCurrency(p.unit_price, p.currency || 'LRD')}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{formatPercent(p.commission_rate)}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{p.stock_quantity || 0}</TableCell>
                       <TableCell>
@@ -209,7 +211,19 @@ const ProductsPage = () => {
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2"><Label>Product Name *</Label><Input value={form.product_name} onChange={e => setForm(f => ({ ...f, product_name: e.target.value }))} /></div>
             <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Unit Price *</Label><Input type="number" value={form.unit_price} onChange={e => setForm(f => ({ ...f, unit_price: e.target.value }))} /></div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2 col-span-2"><Label>Unit Price *</Label><Input type="number" value={form.unit_price} onChange={e => setForm(f => ({ ...f, unit_price: e.target.value }))} /></div>
+              <div className="space-y-2">
+                <Label>Currency</Label>
+                <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LRD">LRD</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={form.commission_rate} onChange={e => setForm(f => ({ ...f, commission_rate: e.target.value }))} /></div>
             <div className="space-y-2">
               <Label>Wholesaler *</Label>
