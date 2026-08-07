@@ -15,6 +15,7 @@ import ClientsPage from "./pages/Clients";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import TargetsPage from "./pages/Targets";
+import SalesPage from "./pages/Sales";
 import ComingSoon from "./pages/ComingSoon";
 import AgentsPage from "./pages/Agents";
 import { MODULES } from "./lib/erp-modules";
@@ -29,6 +30,7 @@ const REAL_ROUTES: Record<string, boolean> = {
   '/products': true,
   '/customers': true, // Clients page reused as Customers
   '/agents': true,
+  '/sales': true,
 };
 
 const App = () => (
@@ -50,6 +52,7 @@ const App = () => (
             <Route path="/products" element={<ProtectedRoute module="products"><ProductsPage /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute module="customers"><ClientsPage /></ProtectedRoute>} />
             <Route path="/agents" element={<ProtectedRoute module="agents"><AgentsPage /></ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute module="sales"><SalesPage /></ProtectedRoute>} />
             {/* Legacy alias */}
             <Route path="/clients" element={<Navigate to="/customers" replace />} />
 

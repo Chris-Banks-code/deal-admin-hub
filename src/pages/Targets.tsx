@@ -108,7 +108,7 @@ const OnboardingBadge = ({ count, target }: { count: number; target?: number }) 
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const TargetsPage = () => {
+const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
   const { profile, isAdmin, isOperationManager } = useAuth();
   const { toast } = useToast();
   const canEdit = isAdmin || isOperationManager;
@@ -339,8 +339,11 @@ const TargetsPage = () => {
   const SortIcon = ({ k }: { k: typeof sortKey }) =>
     sortKey === k ? <span className="ml-1 text-[10px]">{sortAsc ? '↑' : '↓'}</span> : null;
 
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
+    embedded ? <>{children}</> : <DashboardLayout title="Monthly Targets">{children}</DashboardLayout>;
+
   return (
-    <DashboardLayout title="Monthly Targets">
+    <Wrapper>
       <div className="space-y-6">
 
         {/* Month navigator */}
@@ -652,7 +655,7 @@ const TargetsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DashboardLayout>
+    </Wrapper>
   );
 };
 
