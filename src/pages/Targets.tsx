@@ -339,8 +339,11 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
   const SortIcon = ({ k }: { k: typeof sortKey }) =>
     sortKey === k ? <span className="ml-1 text-[10px]">{sortAsc ? '↑' : '↓'}</span> : null;
 
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
+    embedded ? <>{children}</> : <DashboardLayout title="Monthly Targets">{children}</DashboardLayout>;
+
   return (
-    <DashboardLayout title="Monthly Targets">
+    <Wrapper>
       <div className="space-y-6">
 
         {/* Month navigator */}
