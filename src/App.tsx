@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/products" element={<ProtectedRoute module="products"><ProductsPage /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute module="customers"><ClientsPage /></ProtectedRoute>} />
             <Route path="/agents" element={<ProtectedRoute module="agents"><AgentsPage /></ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute module="sales"><SalesPage /></ProtectedRoute>} />
             {/* Legacy alias */}
             <Route path="/clients" element={<Navigate to="/customers" replace />} />
 
