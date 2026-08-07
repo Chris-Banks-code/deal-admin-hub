@@ -15,6 +15,7 @@ import ClientsPage from "./pages/Clients";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import TargetsPage from "./pages/Targets";
+import SalesPage from "./pages/Sales";
 import ComingSoon from "./pages/ComingSoon";
 import AgentsPage from "./pages/Agents";
 import { MODULES } from "./lib/erp-modules";
