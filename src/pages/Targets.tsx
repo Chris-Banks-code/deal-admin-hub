@@ -108,7 +108,7 @@ const OnboardingBadge = ({ count, target }: { count: number; target?: number }) 
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const TargetsPage = () => {
+const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
   const { profile, isAdmin, isOperationManager } = useAuth();
   const { toast } = useToast();
   const canEdit = isAdmin || isOperationManager;
