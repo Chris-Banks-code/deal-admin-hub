@@ -29,6 +29,7 @@ const REAL_ROUTES: Record<string, boolean> = {
   '/products': true,
   '/customers': true, // Clients page reused as Customers
   '/agents': true,
+  '/sales': true,
 };
 
 const App = () => (
