@@ -655,7 +655,7 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DashboardLayout>
+    </Wrapper>
   );
 };
 
