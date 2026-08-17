@@ -433,8 +433,9 @@ export type Database = {
           id: string
           month: string
           notes: string | null
-          onboarding_target: number
-          target_amount: number
+          onboarding_target: number | null
+          target_amount: number | null
+          target_currency: string
           updated_at: string
         }
         Insert: {
@@ -444,8 +445,9 @@ export type Database = {
           id?: string
           month: string
           notes?: string | null
-          onboarding_target?: number
-          target_amount?: number
+          onboarding_target?: number | null
+          target_amount?: number | null
+          target_currency?: string
           updated_at?: string
         }
         Update: {
@@ -455,8 +457,9 @@ export type Database = {
           id?: string
           month?: string
           notes?: string | null
-          onboarding_target?: number
-          target_amount?: number
+          onboarding_target?: number | null
+          target_amount?: number | null
+          target_currency?: string
           updated_at?: string
         }
         Relationships: [
