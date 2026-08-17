@@ -187,7 +187,11 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   useEffect(() => { fetchData(); }, [month]);
-  useRealtimeRefresh(['monthly_targets', 'deals', 'profiles', 'clients'], fetchData, 'targets-page');
+  // Skip background refreshes while a dialog is open so inputs don't get wiped mid-typing
+  useRealtimeRefresh(['monthly_targets', 'deals', 'profiles', 'clients'], () => {
+    if (showModal || showBulk || deletingAgent) return;
+    fetchData();
+  }, 'targets-page');
 
   // ── Derived / stats ───────────────────────────────────────────────────────────
 
