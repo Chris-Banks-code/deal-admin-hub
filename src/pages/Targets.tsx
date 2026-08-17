@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -27,6 +28,7 @@ interface AgentRow {
   role: string;
   target_id?: string;
   target_amount?: number;
+  target_currency?: string;
   onboarding_target?: number;
   notes?: string;
   earnings: number;
@@ -36,11 +38,12 @@ interface AgentRow {
 interface TargetForm {
   agent_id: string;
   target_amount: string;
+  target_currency: string;
   onboarding_target: string;
   notes: string;
 }
 
-const emptyForm: TargetForm = { agent_id: '', target_amount: '', onboarding_target: '', notes: '' };
+const emptyForm: TargetForm = { agent_id: '', target_amount: '', target_currency: 'USD', onboarding_target: '', notes: '' };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -129,6 +132,7 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
   // Bulk modal
   const [showBulk, setShowBulk] = useState(false);
   const [bulkAmount, setBulkAmount] = useState('');
+  const [bulkCurrency, setBulkCurrency] = useState('USD');
   const [bulkOnboarding, setBulkOnboarding] = useState('');
   const [bulkNotes, setBulkNotes] = useState('');
   const [bulkOverwrite, setBulkOverwrite] = useState(false);
@@ -174,7 +178,8 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
         email: a.email,
         role: a.role,
         target_id: t?.id,
-        target_amount: t?.target_amount,
+        target_amount: t?.target_amount || undefined,
+        target_currency: t?.target_currency || 'USD',
         onboarding_target: t?.onboarding_target,
         notes: t?.notes,
         earnings: earningsMap.get(a.id) || 0,
@@ -245,6 +250,7 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
     setForm({
       agent_id: agent.id,
       target_amount: agent.target_amount ? String(agent.target_amount) : '',
+      target_currency: agent.target_currency || 'USD',
       onboarding_target: agent.onboarding_target ? String(agent.onboarding_target) : '',
       notes: agent.notes || '',
     });
@@ -271,8 +277,9 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
     setSaving(true);
     const { error } = await (supabase.from as any)('monthly_targets').upsert({
       agent_id: form.agent_id,
-      target_amount: amount ?? 0,
-      onboarding_target: onboarding ?? 0,
+      target_amount: amount,
+      target_currency: form.target_currency,
+      onboarding_target: onboarding,
       month,
       created_by: profile?.id,
       notes: form.notes.trim() || null,
@@ -303,8 +310,9 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
       .filter(a => bulkOverwrite || !a.target_amount)
       .map(a => ({
         agent_id: a.id,
-        target_amount: amount ?? 0,
-        onboarding_target: onboarding ?? 0,
+        target_amount: amount,
+        target_currency: bulkCurrency,
+        onboarding_target: onboarding,
         month,
         created_by: profile?.id,
         notes: bulkNotes.trim() || null,
@@ -455,7 +463,7 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
                           <Badge variant="outline" className="text-xs capitalize">{agent.role}</Badge>
                         </TableCell>
                         <TableCell className="text-sm font-medium">
-                          {agent.target_amount ? formatCurrency(agent.target_amount) : <span className="text-muted-foreground text-xs">—</span>}
+                          {agent.target_amount ? formatCurrency(agent.target_amount, agent.target_currency || 'USD') : <span className="text-muted-foreground text-xs">—</span>}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm">
                           {formatCurrency(agent.earnings)}
@@ -533,15 +541,24 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Revenue Target (USD)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="e.g. 5000"
-                value={form.target_amount}
-                onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))}
-              />
+              <Label>Revenue Target <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <div className="flex gap-2">
+                <Select value={form.target_currency} onValueChange={v => setForm(f => ({ ...f, target_currency: v }))}>
+                  <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LRD">LRD (L$)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Leave blank for no revenue target"
+                  value={form.target_amount}
+                  onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Onboarding Target <span className="text-muted-foreground font-normal">(# retailers to onboard)</span></Label>
@@ -584,15 +601,24 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Revenue Target (USD)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="e.g. 5000"
-                value={bulkAmount}
-                onChange={e => setBulkAmount(e.target.value)}
-              />
+              <Label>Revenue Target <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <div className="flex gap-2">
+                <Select value={bulkCurrency} onValueChange={setBulkCurrency}>
+                  <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LRD">LRD (L$)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Leave blank for no revenue target"
+                  value={bulkAmount}
+                  onChange={e => setBulkAmount(e.target.value)}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Onboarding Target <span className="text-muted-foreground font-normal">(# retailers per agent)</span></Label>
