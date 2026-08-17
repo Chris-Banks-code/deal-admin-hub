@@ -187,7 +187,11 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   useEffect(() => { fetchData(); }, [month]);
-  useRealtimeRefresh(['monthly_targets', 'deals', 'profiles', 'clients'], fetchData, 'targets-page');
+  // Skip background refreshes while a dialog is open so inputs don't get wiped mid-typing
+  useRealtimeRefresh(['monthly_targets', 'deals', 'profiles', 'clients'], () => {
+    if (showModal || showBulk || deletingAgent) return;
+    fetchData();
+  }, 'targets-page');
 
   // ── Derived / stats ───────────────────────────────────────────────────────────
 
@@ -267,10 +271,10 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
     setSaving(true);
     const { error } = await (supabase.from as any)('monthly_targets').upsert({
       agent_id: form.agent_id,
-      target_amount: amount,
-      onboarding_target: onboarding,
+      target_amount: amount ?? 0,
+      onboarding_target: onboarding ?? 0,
       month,
-      set_by: profile?.id,
+      created_by: profile?.id,
       notes: form.notes.trim() || null,
     }, { onConflict: 'agent_id,month' });
 
@@ -299,10 +303,10 @@ const TargetsPage = ({ embedded = false }: { embedded?: boolean }) => {
       .filter(a => bulkOverwrite || !a.target_amount)
       .map(a => ({
         agent_id: a.id,
-        target_amount: amount,
-        onboarding_target: onboarding,
+        target_amount: amount ?? 0,
+        onboarding_target: onboarding ?? 0,
         month,
-        set_by: profile?.id,
+        created_by: profile?.id,
         notes: bulkNotes.trim() || null,
       }));
 
