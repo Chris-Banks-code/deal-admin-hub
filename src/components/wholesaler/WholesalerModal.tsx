@@ -180,39 +180,22 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
         ? [...form.product_categories.filter(c => c !== 'Other'), form.other_category]
         : form.product_categories;
 
-      // --- 1. Upsert party ---
-      const partyData: Record<string, any> = {
-        party_type: 'supplier',
-        legal_name: form.company_name.trim(),
-        display_name: form.company_name.trim(),
-        tax_id: form.tax_id.trim() || null,
-        registration_number: form.business_registration_number.trim() || null,
-        email: form.company_email.trim() || form.email.trim() || null,
+      // --- 1. Upsert the client record (client_type = wholesaler) ---
+      const clientData: Record<string, any> = {
+        client_type: 'wholesaler',
+        company_name: form.company_name.trim(),
+        contact_person: form.contact_person.trim() || form.company_name.trim(),
         phone: form.phone.trim() || null,
-        website: form.company_website.trim() || null,
-        address: form.address.trim(),
+        address: form.address.trim() || null,
         latitude: form.latitude ? parseFloat(form.latitude) : null,
         longitude: form.longitude ? parseFloat(form.longitude) : null,
         status: form.status,
-        notes: form.admin_notes.trim() || null,
-      };
-
-      let partyId: string;
-      if (editingWholesaler) {
-        partyId = editingWholesaler.party_id || editingWholesaler.id;
-        const { error } = await supabase.from('parties').update(partyData).eq('id', partyId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from('parties').insert(partyData as any).select('id').single();
-        if (error) throw error;
-        partyId = data.id;
-      }
-
-      // --- 2. Upsert supplier ---
-      const supplierData: Record<string, any> = {
-        party_id: partyId,
+        business_registration_number: form.business_registration_number.trim() || null,
+        tax_id: form.tax_id.trim() || null,
         company_type: form.company_type || null,
         year_established: form.year_established ? parseInt(form.year_established) : null,
+        company_email: form.company_email.trim() || form.email.trim() || null,
+        company_website: form.company_website.trim() || null,
         secondary_contact_person: form.secondary_contact_name.trim() || null,
         secondary_contact_phone: form.secondary_contact_phone.trim() || null,
         product_categories: categories,
@@ -231,52 +214,48 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
         storage_facilities_available: form.storage_facilities,
         storage_facilities_description: form.storage_facilities ? form.storage_description.trim() || null : null,
         cold_storage_available: form.cold_storage,
-        certifications: form.certifications.trim() ? [form.certifications.trim()] : null,
-        special_services: form.special_services.trim() ? [form.special_services.trim()] : null,
+        certifications: form.certifications.trim() || null,
+        special_services: form.special_services.trim() || null,
         credit_references: form.credit_references.trim() || null,
         admin_notes: form.admin_notes.trim() || null,
-        verification_status: verify ? 'verified' : (form.verification_status as any),
+        verification_status: verify ? 'verified' : form.verification_status,
       };
 
       if (verify && user) {
-        supplierData.verified_by = user.id;
-        supplierData.verified_at = new Date().toISOString();
+        clientData.verified_by_admin_id = user.id;
+        clientData.verified_at = new Date().toISOString();
       }
       if (!editingWholesaler && user) {
-        supplierData.added_by = user.id;
+        clientData.added_by_admin_id = user.id;
       }
 
-      // Look up existing supplier by party_id
-      const { data: existingSupplier } = await supabase
-        .from('suppliers').select('id').eq('party_id', partyId).maybeSingle();
-
-      let supplierId: string;
-      if (existingSupplier) {
-        const { error } = await supabase.from('suppliers').update(supplierData).eq('id', existingSupplier.id);
+      let clientId: string;
+      if (editingWholesaler) {
+        clientId = editingWholesaler.id;
+        const { error } = await supabase.from('clients').update(clientData).eq('id', clientId);
         if (error) throw error;
-        supplierId = existingSupplier.id;
       } else {
-        const { data, error } = await supabase.from('suppliers').insert(supplierData as any).select('id').single();
+        const { data, error } = await supabase.from('clients').insert(clientData as any).select('id').single();
         if (error) throw error;
-        supplierId = data.id;
+        clientId = data.id;
       }
 
-      // --- 3. Upload files → supplier url columns ---
+      // --- 2. Upload documents → client url columns ---
       for (const [docType, file] of Object.entries(uploadedFiles)) {
         if (file) {
-          const url = await uploadFile(file, supplierId, docType);
+          const url = await uploadFile(file, clientId, docType);
           if (url) {
             const urlField = `${docType}_url`;
-            await supabase.from('suppliers').update({ [urlField]: url } as any).eq('id', supplierId);
+            await supabase.from('clients').update({ [urlField]: url } as any).eq('id', clientId);
           }
         }
       }
 
-      // --- 4. Upsert supplier_locations (branches) ---
+      // --- 3. Branches (wholesaler_locations) ---
       for (const branch of form.branches) {
         if (!branch.branch_name || !branch.address) continue;
         const branchData: Record<string, any> = {
-          supplier_id: supplierId,
+          wholesaler_id: clientId,
           branch_name: branch.branch_name,
           address: branch.address,
           branch_phone: branch.phone || null,
@@ -285,10 +264,25 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
           longitude: branch.longitude ? parseFloat(branch.longitude) : null,
         };
         if (branch.id) {
-          await supabase.from('supplier_locations').update(branchData).eq('id', branch.id);
+          await supabase.from('wholesaler_locations').update(branchData).eq('id', branch.id);
         } else {
-          await supabase.from('supplier_locations').insert(branchData as any);
+          await supabase.from('wholesaler_locations').insert(branchData as any);
         }
+      }
+
+      // --- 4. Ensure a primary branch always exists (agents pick products by branch) ---
+      const { data: existingBranch } = await supabase
+        .from('wholesaler_locations').select('id').eq('wholesaler_id', clientId).limit(1);
+      if (!existingBranch || existingBranch.length === 0) {
+        await supabase.from('wholesaler_locations').insert({
+          wholesaler_id: clientId,
+          branch_name: 'Main Branch',
+          address: form.address.trim() || null,
+          branch_phone: form.phone.trim() || null,
+          latitude: form.latitude ? parseFloat(form.latitude) : null,
+          longitude: form.longitude ? parseFloat(form.longitude) : null,
+          is_primary: true,
+        } as any);
       }
 
       toast({ title: editingWholesaler ? 'Wholesaler updated' : 'Wholesaler registered', description: verify ? 'Wholesaler has been verified.' : undefined });
