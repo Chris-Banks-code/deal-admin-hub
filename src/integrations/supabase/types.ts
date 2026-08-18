@@ -64,7 +64,7 @@ export type Database = {
           business_license_url: string | null
           business_registration_number: string | null
           certifications: string | null
-          client_type: string | null
+          client_type: string
           cold_storage_available: boolean | null
           company_email: string | null
           company_name: string
@@ -72,9 +72,11 @@ export type Database = {
           company_website: string | null
           contact_person: string | null
           created_at: string | null
+          credit_limit: number | null
           credit_period_days: number | null
           credit_references: string | null
           default_commission_rate: number | null
+          default_delivery_address: string | null
           delivery_coverage_areas: string | null
           delivery_options: string | null
           id: string
@@ -90,6 +92,7 @@ export type Database = {
           price_list_url: string | null
           product_catalog_url: string | null
           product_categories: Json | null
+          retailer_tier: string | null
           secondary_contact_person: string | null
           secondary_contact_phone: string | null
           special_services: string | null
@@ -98,6 +101,7 @@ export type Database = {
           storage_facilities_description: string | null
           tax_certificate_url: string | null
           tax_id: string | null
+          updated_at: string
           verification_status: string | null
           verified_at: string | null
           verified_by_admin_id: string | null
@@ -116,7 +120,7 @@ export type Database = {
           business_license_url?: string | null
           business_registration_number?: string | null
           certifications?: string | null
-          client_type?: string | null
+          client_type?: string
           cold_storage_available?: boolean | null
           company_email?: string | null
           company_name: string
@@ -124,9 +128,11 @@ export type Database = {
           company_website?: string | null
           contact_person?: string | null
           created_at?: string | null
+          credit_limit?: number | null
           credit_period_days?: number | null
           credit_references?: string | null
           default_commission_rate?: number | null
+          default_delivery_address?: string | null
           delivery_coverage_areas?: string | null
           delivery_options?: string | null
           id?: string
@@ -142,6 +148,7 @@ export type Database = {
           price_list_url?: string | null
           product_catalog_url?: string | null
           product_categories?: Json | null
+          retailer_tier?: string | null
           secondary_contact_person?: string | null
           secondary_contact_phone?: string | null
           special_services?: string | null
@@ -150,6 +157,7 @@ export type Database = {
           storage_facilities_description?: string | null
           tax_certificate_url?: string | null
           tax_id?: string | null
+          updated_at?: string
           verification_status?: string | null
           verified_at?: string | null
           verified_by_admin_id?: string | null
@@ -168,7 +176,7 @@ export type Database = {
           business_license_url?: string | null
           business_registration_number?: string | null
           certifications?: string | null
-          client_type?: string | null
+          client_type?: string
           cold_storage_available?: boolean | null
           company_email?: string | null
           company_name?: string
@@ -176,9 +184,11 @@ export type Database = {
           company_website?: string | null
           contact_person?: string | null
           created_at?: string | null
+          credit_limit?: number | null
           credit_period_days?: number | null
           credit_references?: string | null
           default_commission_rate?: number | null
+          default_delivery_address?: string | null
           delivery_coverage_areas?: string | null
           delivery_options?: string | null
           id?: string
@@ -194,6 +204,7 @@ export type Database = {
           price_list_url?: string | null
           product_catalog_url?: string | null
           product_categories?: Json | null
+          retailer_tier?: string | null
           secondary_contact_person?: string | null
           secondary_contact_phone?: string | null
           special_services?: string | null
@@ -202,6 +213,7 @@ export type Database = {
           storage_facilities_description?: string | null
           tax_certificate_url?: string | null
           tax_id?: string | null
+          updated_at?: string
           verification_status?: string | null
           verified_at?: string | null
           verified_by_admin_id?: string | null
@@ -275,62 +287,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      customers: {
-        Row: {
-          added_by: string | null
-          assigned_agent_id: string | null
-          created_at: string
-          credit_limit: number | null
-          default_delivery_address: string | null
-          id: string
-          party_id: string
-          payment_terms: string | null
-          retailer_tier: string | null
-          updated_at: string
-          verification_status: Database["public"]["Enums"]["verification_status"]
-          verified_at: string | null
-          verified_by: string | null
-        }
-        Insert: {
-          added_by?: string | null
-          assigned_agent_id?: string | null
-          created_at?: string
-          credit_limit?: number | null
-          default_delivery_address?: string | null
-          id?: string
-          party_id: string
-          payment_terms?: string | null
-          retailer_tier?: string | null
-          updated_at?: string
-          verification_status?: Database["public"]["Enums"]["verification_status"]
-          verified_at?: string | null
-          verified_by?: string | null
-        }
-        Update: {
-          added_by?: string | null
-          assigned_agent_id?: string | null
-          created_at?: string
-          credit_limit?: number | null
-          default_delivery_address?: string | null
-          id?: string
-          party_id?: string
-          payment_terms?: string | null
-          retailer_tier?: string | null
-          updated_at?: string
-          verification_status?: Database["public"]["Enums"]["verification_status"]
-          verified_at?: string | null
-          verified_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customers_party_id_fkey"
-            columns: ["party_id"]
-            isOneToOne: true
-            referencedRelation: "parties"
             referencedColumns: ["id"]
           },
         ]
@@ -546,63 +502,6 @@ export type Database = {
           },
         ]
       }
-      parties: {
-        Row: {
-          address: string | null
-          created_at: string
-          display_name: string | null
-          email: string | null
-          id: string
-          latitude: number | null
-          legal_name: string
-          longitude: number | null
-          notes: string | null
-          party_type: Database["public"]["Enums"]["party_type"]
-          phone: string | null
-          registration_number: string | null
-          status: string
-          tax_id: string | null
-          updated_at: string
-          website: string | null
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string
-          display_name?: string | null
-          email?: string | null
-          id?: string
-          latitude?: number | null
-          legal_name: string
-          longitude?: number | null
-          notes?: string | null
-          party_type?: Database["public"]["Enums"]["party_type"]
-          phone?: string | null
-          registration_number?: string | null
-          status?: string
-          tax_id?: string | null
-          updated_at?: string
-          website?: string | null
-        }
-        Update: {
-          address?: string | null
-          created_at?: string
-          display_name?: string | null
-          email?: string | null
-          id?: string
-          latitude?: number | null
-          legal_name?: string
-          longitude?: number | null
-          notes?: string | null
-          party_type?: Database["public"]["Enums"]["party_type"]
-          phone?: string | null
-          registration_number?: string | null
-          status?: string
-          tax_id?: string | null
-          updated_at?: string
-          website?: string | null
-        }
-        Relationships: []
-      }
       products: {
         Row: {
           category: string | null
@@ -801,14 +700,14 @@ export type Database = {
             foreignKeyName: "sales_order_items_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: "suppliers"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sales_order_items_supplier_location_id_fkey"
             columns: ["supplier_location_id"]
             isOneToOne: false
-            referencedRelation: "supplier_locations"
+            referencedRelation: "wholesaler_locations"
             referencedColumns: ["id"]
           },
         ]
@@ -876,188 +775,7 @@ export type Database = {
             foreignKeyName: "sales_orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      supplier_locations: {
-        Row: {
-          address: string | null
-          branch_manager_name: string | null
-          branch_name: string
-          branch_phone: string | null
-          created_at: string
-          id: string
-          is_primary: boolean | null
-          latitude: number | null
-          longitude: number | null
-          supplier_id: string
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          branch_manager_name?: string | null
-          branch_name: string
-          branch_phone?: string | null
-          created_at?: string
-          id?: string
-          is_primary?: boolean | null
-          latitude?: number | null
-          longitude?: number | null
-          supplier_id: string
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          branch_manager_name?: string | null
-          branch_name?: string
-          branch_phone?: string | null
-          created_at?: string
-          id?: string
-          is_primary?: boolean | null
-          latitude?: number | null
-          longitude?: number | null
-          supplier_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "supplier_locations_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      suppliers: {
-        Row: {
-          added_by: string | null
-          admin_notes: string | null
-          bank_account_name: string | null
-          bank_account_number: string | null
-          bank_branch: string | null
-          bank_name: string | null
-          bulk_discount_available: boolean | null
-          business_license_url: string | null
-          certifications: string[] | null
-          cold_storage_available: boolean | null
-          company_type: string | null
-          created_at: string
-          credit_period_days: number | null
-          credit_references: string | null
-          default_commission_rate: number | null
-          delivery_coverage_areas: string | null
-          delivery_options: string | null
-          id: string
-          incorporation_certificate_url: string | null
-          minimum_order_value: number | null
-          operating_hours: Json | null
-          party_id: string
-          payment_terms: string | null
-          photo_urls: string[] | null
-          price_list_url: string | null
-          product_catalog_url: string | null
-          product_categories: Json | null
-          secondary_contact_person: string | null
-          secondary_contact_phone: string | null
-          special_services: string[] | null
-          storage_facilities_available: boolean | null
-          storage_facilities_description: string | null
-          tax_certificate_url: string | null
-          updated_at: string
-          verification_status: Database["public"]["Enums"]["verification_status"]
-          verified_at: string | null
-          verified_by: string | null
-          year_established: number | null
-        }
-        Insert: {
-          added_by?: string | null
-          admin_notes?: string | null
-          bank_account_name?: string | null
-          bank_account_number?: string | null
-          bank_branch?: string | null
-          bank_name?: string | null
-          bulk_discount_available?: boolean | null
-          business_license_url?: string | null
-          certifications?: string[] | null
-          cold_storage_available?: boolean | null
-          company_type?: string | null
-          created_at?: string
-          credit_period_days?: number | null
-          credit_references?: string | null
-          default_commission_rate?: number | null
-          delivery_coverage_areas?: string | null
-          delivery_options?: string | null
-          id?: string
-          incorporation_certificate_url?: string | null
-          minimum_order_value?: number | null
-          operating_hours?: Json | null
-          party_id: string
-          payment_terms?: string | null
-          photo_urls?: string[] | null
-          price_list_url?: string | null
-          product_catalog_url?: string | null
-          product_categories?: Json | null
-          secondary_contact_person?: string | null
-          secondary_contact_phone?: string | null
-          special_services?: string[] | null
-          storage_facilities_available?: boolean | null
-          storage_facilities_description?: string | null
-          tax_certificate_url?: string | null
-          updated_at?: string
-          verification_status?: Database["public"]["Enums"]["verification_status"]
-          verified_at?: string | null
-          verified_by?: string | null
-          year_established?: number | null
-        }
-        Update: {
-          added_by?: string | null
-          admin_notes?: string | null
-          bank_account_name?: string | null
-          bank_account_number?: string | null
-          bank_branch?: string | null
-          bank_name?: string | null
-          bulk_discount_available?: boolean | null
-          business_license_url?: string | null
-          certifications?: string[] | null
-          cold_storage_available?: boolean | null
-          company_type?: string | null
-          created_at?: string
-          credit_period_days?: number | null
-          credit_references?: string | null
-          default_commission_rate?: number | null
-          delivery_coverage_areas?: string | null
-          delivery_options?: string | null
-          id?: string
-          incorporation_certificate_url?: string | null
-          minimum_order_value?: number | null
-          operating_hours?: Json | null
-          party_id?: string
-          payment_terms?: string | null
-          photo_urls?: string[] | null
-          price_list_url?: string | null
-          product_catalog_url?: string | null
-          product_categories?: Json | null
-          secondary_contact_person?: string | null
-          secondary_contact_phone?: string | null
-          special_services?: string[] | null
-          storage_facilities_available?: boolean | null
-          storage_facilities_description?: string | null
-          tax_certificate_url?: string | null
-          updated_at?: string
-          verification_status?: Database["public"]["Enums"]["verification_status"]
-          verified_at?: string | null
-          verified_by?: string | null
-          year_established?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "suppliers_party_id_fkey"
-            columns: ["party_id"]
-            isOneToOne: true
-            referencedRelation: "parties"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
