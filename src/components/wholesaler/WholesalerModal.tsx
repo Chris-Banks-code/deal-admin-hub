@@ -46,21 +46,11 @@ export const WholesalerModal = ({ open, onOpenChange, editingWholesaler, onSaved
     }
   }, [open, editingWholesaler]);
 
-  const fetchBranches = async (partyId: string) => {
-    // Look up supplier by party_id, then load its supplier_locations
-    const { data: supplier } = await supabase
-      .from('suppliers')
-      .select('id')
-      .eq('party_id', partyId)
-      .maybeSingle();
-    if (!supplier) {
-      setExistingBranches([]);
-      return;
-    }
+  const fetchBranches = async (clientId: string) => {
     const { data } = await supabase
-      .from('supplier_locations')
+      .from('wholesaler_locations')
       .select('*')
-      .eq('supplier_id', supplier.id);
+      .eq('wholesaler_id', clientId);
     setExistingBranches(data || []);
     if (data && data.length > 0) {
       setForm(f => ({
