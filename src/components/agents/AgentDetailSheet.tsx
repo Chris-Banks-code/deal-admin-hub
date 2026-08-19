@@ -36,8 +36,9 @@ export function AgentDetailSheet({ agent, supervisorName, onOpenChange }: Props)
     (async () => {
       setLoading(true);
       const [custRes, orderRes, commRes] = await Promise.all([
-        supabase.from('customers')
-          .select('id, retailer_tier, verification_status, created_at, parties(legal_name, display_name, phone, address)')
+        supabase.from('clients')
+          .select('id, company_name, contact_person, retailer_tier, verification_status, created_at, phone, address')
+          .eq('client_type', 'retailer')
           .eq('assigned_agent_id', agent.id)
           .order('created_at', { ascending: false }),
         supabase.from('sales_orders')
