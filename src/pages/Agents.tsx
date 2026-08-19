@@ -44,7 +44,7 @@ export default function AgentsPage() {
         .select('id, full_name, email, phone, role, supervisor_id, status')
         .in('role', ['agent', 'supervisor'])
         .order('full_name', { ascending: true }),
-      supabase.from('customers').select('assigned_agent_id'),
+      supabase.from('clients').select('assigned_agent_id').eq('client_type', 'retailer'),
     ]);
     if (profRes.error) {
       toast({ title: 'Error', description: profRes.error.message, variant: 'destructive' });

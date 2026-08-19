@@ -44,7 +44,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: Props) {
     (async () => {
       setLoading(true);
       const [custRes, agentRes, prodRes] = await Promise.all([
-        (supabase.from as any)('customers').select('id, party_id, default_delivery_address, assigned_agent_id, parties(legal_name, display_name, address)'),
+        supabase.from('clients').select('id, company_name, default_delivery_address, assigned_agent_id, address').eq('client_type', 'retailer').order('company_name'),
         supabase.from('profiles').select('id, full_name, role').in('role', ['agent', 'sales_agent', 'supervisor']).eq('status', 'active').order('full_name'),
         supabase.from('products').select('*').eq('is_active', true).order('name'),
       ]);
@@ -60,13 +60,13 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: Props) {
     setNotes(''); setLines([{ product_id: '', quantity: '1' }]);
   };
 
-  const customerName = (c: any) => c?.parties?.display_name || c?.parties?.legal_name || 'Unnamed';
+  const customerName = (c: any) => c?.company_name || 'Unnamed';
 
   const onCustomerChange = (id: string) => {
     setCustomerId(id);
     const c = customers.find(x => x.id === id);
     if (c) {
-      setDeliveryAddress(c.default_delivery_address || c.parties?.address || '');
+      setDeliveryAddress(c.default_delivery_address || c.address || '');
       if (c.assigned_agent_id) setAgentId(c.assigned_agent_id);
     }
   };

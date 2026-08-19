@@ -137,8 +137,8 @@ export function AgentDetailSheet({ agent, supervisorName, onOpenChange }: Props)
                   : data.customers.map((c: any) => (
                     <div key={c.id} className="flex items-center justify-between rounded-lg border border-border/50 p-3">
                       <div>
-                        <p className="text-sm font-medium">{c.parties?.display_name || c.parties?.legal_name || 'Unnamed'}</p>
-                        <p className="text-xs text-muted-foreground">{c.parties?.phone || c.parties?.address || '—'}</p>
+                        <p className="text-sm font-medium">{c.company_name || c.contact_person || 'Unnamed'}</p>
+                        <p className="text-xs text-muted-foreground">{c.phone || c.address || '—'}</p>
                       </div>
                       <Badge variant="outline" className="text-xs">{c.retailer_tier || c.verification_status}</Badge>
                     </div>

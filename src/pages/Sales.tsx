@@ -46,14 +46,14 @@ const SalesPage = () => {
       (supabase.from as any)('sales_orders').select('*').order('created_at', { ascending: false }),
       (supabase.from as any)('sales_order_items').select('*'),
       supabase.from('profiles').select('id, full_name, role'),
-      (supabase.from as any)('customers').select('id, parties(legal_name, display_name)'),
+      supabase.from('clients').select('id, company_name').eq('client_type', 'retailer'),
     ]);
     setOrders(ordersRes.data || []);
     setItems(itemsRes.data || []);
     setProfiles(profilesRes.data || []);
     const names: Record<string, string> = {};
     (customersRes.data || []).forEach((c: any) => {
-      names[c.id] = c.parties?.display_name || c.parties?.legal_name || 'Unnamed';
+      names[c.id] = c.company_name || 'Unnamed';
     });
     setCustomerNames(names);
     setLoading(false);
