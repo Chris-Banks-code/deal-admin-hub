@@ -36,8 +36,9 @@ export function AgentDetailSheet({ agent, supervisorName, onOpenChange }: Props)
     (async () => {
       setLoading(true);
       const [custRes, orderRes, commRes] = await Promise.all([
-        supabase.from('customers')
-          .select('id, retailer_tier, verification_status, created_at, parties(legal_name, display_name, phone, address)')
+        supabase.from('clients')
+          .select('id, company_name, contact_person, retailer_tier, verification_status, created_at, phone, address')
+          .eq('client_type', 'retailer')
           .eq('assigned_agent_id', agent.id)
           .order('created_at', { ascending: false }),
         supabase.from('sales_orders')
@@ -136,8 +137,8 @@ export function AgentDetailSheet({ agent, supervisorName, onOpenChange }: Props)
                   : data.customers.map((c: any) => (
                     <div key={c.id} className="flex items-center justify-between rounded-lg border border-border/50 p-3">
                       <div>
-                        <p className="text-sm font-medium">{c.parties?.display_name || c.parties?.legal_name || 'Unnamed'}</p>
-                        <p className="text-xs text-muted-foreground">{c.parties?.phone || c.parties?.address || '—'}</p>
+                        <p className="text-sm font-medium">{c.company_name || c.contact_person || 'Unnamed'}</p>
+                        <p className="text-xs text-muted-foreground">{c.phone || c.address || '—'}</p>
                       </div>
                       <Badge variant="outline" className="text-xs">{c.retailer_tier || c.verification_status}</Badge>
                     </div>
