@@ -134,14 +134,16 @@ const Dashboard = () => {
     setRejectingDealId(null);
   };
 
-  const statCards = [
+  const statCards: { title: string; subtitle?: string; value: any; icon: any; accent: string; badge?: boolean }[] = [
     { title: 'Total Orders', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary' },
     { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', badge: true },
-    { title: 'Revenue', value: currencyLines('revenue'), icon: DollarSign, accent: 'bg-success/10 text-success' },
-    { title: 'Commissions Paid', value: currencyLines('commissions'), icon: Wallet, accent: 'bg-accent/10 text-accent' },
-    { title: 'Company Profit', value: currencyLines('profit'), icon: Building2, accent: 'bg-primary/8 text-primary' },
+    { title: 'Sales Value', subtitle: 'Goods sold for suppliers', value: currencyLines('sales'), icon: DollarSign, accent: 'bg-muted text-muted-foreground' },
+    { title: 'Commission Earned', subtitle: 'Our share of those sales', value: currencyLines('commission'), icon: TrendingUp, accent: 'bg-success/10 text-success' },
+    { title: 'Paid To Team', subtitle: 'Agents & managers', value: currencyLines('team'), icon: Wallet, accent: 'bg-accent/10 text-accent' },
+    { title: 'Deal Group Share', subtitle: 'Commission left after payouts', value: currencyLines('deal'), icon: Building2, accent: 'bg-primary/8 text-primary' },
     { title: 'Active Agents', value: activeAgents, icon: Users, accent: 'bg-success/10 text-success' },
   ];
+
 
   return (
     <DashboardLayout title="Dashboard">
