@@ -71,25 +71,39 @@ const Dashboard = () => {
     const pending = allDeals.filter(d => d.status === 'pending_admin').length;
     const completed = filtered.filter(d => d.status === 'completed');
 
-    // Compute totals per currency so USD and LRD are never mixed
-    const byCurrency: Record<string, { revenue: number; commissions: number; profit: number }> = {};
+    // Totals kept strictly separate per currency (USD vs LRD are never added together).
+    // sales     = value of the goods sold (belongs to the supplier, not to Deal)
+    // commission = the percentage Deal earns on those sales — the only money we share
+    // team      = commission paid out to agent + supervisor + operation manager
+    // deal      = what remains for Deal Group after paying the team
+    const byCurrency: Record<string, { sales: number; commission: number; team: number; deal: number }> = {};
     for (const d of completed) {
       const cur = d.currency || 'USD';
-      if (!byCurrency[cur]) byCurrency[cur] = { revenue: 0, commissions: 0, profit: 0 };
-      byCurrency[cur].revenue     += d.deal_value || 0;
-      byCurrency[cur].commissions += (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0);
-      byCurrency[cur].profit      += (d.commission_amount || 0) * 0.45;
+      if (!byCurrency[cur]) byCurrency[cur] = { sales: 0, commission: 0, team: 0, deal: 0 };
+      const team = (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0);
+      const commission = d.commission_amount || 0;
+      byCurrency[cur].sales      += d.deal_value || 0;
+      byCurrency[cur].commission += commission;
+      byCurrency[cur].team       += team;
+      byCurrency[cur].deal       += Math.max(commission - team, 0);
     }
 
     return { totalOrders, pending, byCurrency };
   }, [allDeals, dateRange]);
 
-  // Helper: render one or two currency lines for a given metric key
-  const currencyLines = (key: 'revenue' | 'commissions' | 'profit') => {
+  // Render one line per currency so USD and LRD are shown side by side, never summed
+  const currencyLines = (key: 'sales' | 'commission' | 'team' | 'deal') => {
     const entries = Object.entries(stats.byCurrency);
-    if (entries.length === 0) return formatCurrency(0);
-    return entries.map(([cur, vals]) => formatCurrency(vals[key], cur)).join(' | ');
+    if (entries.length === 0) return <span>{formatCurrency(0, 'LRD')}</span>;
+    return (
+      <span className="flex flex-col gap-0.5">
+        {entries.map(([cur, vals]) => (
+          <span key={cur} className="font-mono">{formatCurrency(vals[key], cur)}</span>
+        ))}
+      </span>
+    );
   };
+
 
   useEffect(() => { fetchData(); }, []);
   useRealtimeRefresh(['deals', 'profiles'], fetchData, 'dashboard-page');
@@ -120,14 +134,16 @@ const Dashboard = () => {
     setRejectingDealId(null);
   };
 
-  const statCards = [
+  const statCards: { title: string; subtitle?: string; value: any; icon: any; accent: string; badge?: boolean }[] = [
     { title: 'Total Orders', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary' },
     { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', badge: true },
-    { title: 'Revenue', value: currencyLines('revenue'), icon: DollarSign, accent: 'bg-success/10 text-success' },
-    { title: 'Commissions Paid', value: currencyLines('commissions'), icon: Wallet, accent: 'bg-accent/10 text-accent' },
-    { title: 'Company Profit', value: currencyLines('profit'), icon: Building2, accent: 'bg-primary/8 text-primary' },
+    { title: 'Sales Value', subtitle: 'Goods sold for suppliers', value: currencyLines('sales'), icon: DollarSign, accent: 'bg-muted text-muted-foreground' },
+    { title: 'Commission Earned', subtitle: 'Our share of those sales', value: currencyLines('commission'), icon: TrendingUp, accent: 'bg-success/10 text-success' },
+    { title: 'Paid To Team', subtitle: 'Agents & managers', value: currencyLines('team'), icon: Wallet, accent: 'bg-accent/10 text-accent' },
+    { title: 'Deal Group Share', subtitle: 'Commission left after payouts', value: currencyLines('deal'), icon: Building2, accent: 'bg-primary/8 text-primary' },
     { title: 'Active Agents', value: activeAgents, icon: Users, accent: 'bg-success/10 text-success' },
   ];
+
 
   return (
     <DashboardLayout title="Dashboard">
@@ -150,7 +166,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
           {statCards.map((card, i) => (
             <Card key={card.title} className="shadow-card hover:shadow-premium transition-shadow duration-300 border-border/50 animate-in-up" style={{ animationDelay: `${i * 60}ms` }}>
               <CardContent className="p-4">
@@ -168,15 +184,19 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="flex items-end justify-between gap-1">
-                      <p className="text-lg font-bold tracking-tight leading-none">{card.value}</p>
-                      {'badge' in card && card.badge && Number(card.value) > 0 && (
+                      <p className="text-base font-bold tracking-tight leading-tight">{card.value}</p>
+                      {card.badge && Number(card.value) > 0 && (
                         <Badge className="bg-warning/15 text-warning border-warning/20 text-[9px] font-semibold px-1 py-0">
                           Review
                         </Badge>
                       )}
                     </div>
+                    {card.subtitle && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-1.5 leading-tight">{card.subtitle}</p>
+                    )}
                   </>
                 )}
+
               </CardContent>
             </Card>
           ))}
