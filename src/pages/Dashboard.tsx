@@ -71,25 +71,39 @@ const Dashboard = () => {
     const pending = allDeals.filter(d => d.status === 'pending_admin').length;
     const completed = filtered.filter(d => d.status === 'completed');
 
-    // Compute totals per currency so USD and LRD are never mixed
-    const byCurrency: Record<string, { revenue: number; commissions: number; profit: number }> = {};
+    // Totals kept strictly separate per currency (USD vs LRD are never added together).
+    // sales     = value of the goods sold (belongs to the supplier, not to Deal)
+    // commission = the percentage Deal earns on those sales — the only money we share
+    // team      = commission paid out to agent + supervisor + operation manager
+    // deal      = what remains for Deal Group after paying the team
+    const byCurrency: Record<string, { sales: number; commission: number; team: number; deal: number }> = {};
     for (const d of completed) {
       const cur = d.currency || 'USD';
-      if (!byCurrency[cur]) byCurrency[cur] = { revenue: 0, commissions: 0, profit: 0 };
-      byCurrency[cur].revenue     += d.deal_value || 0;
-      byCurrency[cur].commissions += (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0);
-      byCurrency[cur].profit      += (d.commission_amount || 0) * 0.45;
+      if (!byCurrency[cur]) byCurrency[cur] = { sales: 0, commission: 0, team: 0, deal: 0 };
+      const team = (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0);
+      const commission = d.commission_amount || 0;
+      byCurrency[cur].sales      += d.deal_value || 0;
+      byCurrency[cur].commission += commission;
+      byCurrency[cur].team       += team;
+      byCurrency[cur].deal       += Math.max(commission - team, 0);
     }
 
     return { totalOrders, pending, byCurrency };
   }, [allDeals, dateRange]);
 
-  // Helper: render one or two currency lines for a given metric key
-  const currencyLines = (key: 'revenue' | 'commissions' | 'profit') => {
+  // Render one line per currency so USD and LRD are shown side by side, never summed
+  const currencyLines = (key: 'sales' | 'commission' | 'team' | 'deal') => {
     const entries = Object.entries(stats.byCurrency);
-    if (entries.length === 0) return formatCurrency(0);
-    return entries.map(([cur, vals]) => formatCurrency(vals[key], cur)).join(' | ');
+    if (entries.length === 0) return <span>{formatCurrency(0, 'LRD')}</span>;
+    return (
+      <span className="flex flex-col gap-0.5">
+        {entries.map(([cur, vals]) => (
+          <span key={cur} className="font-mono">{formatCurrency(vals[key], cur)}</span>
+        ))}
+      </span>
+    );
   };
+
 
   useEffect(() => { fetchData(); }, []);
   useRealtimeRefresh(['deals', 'profiles'], fetchData, 'dashboard-page');
