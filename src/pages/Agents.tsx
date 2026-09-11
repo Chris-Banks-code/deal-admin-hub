@@ -59,7 +59,7 @@ export default function AgentsPage() {
   };
 
   useEffect(() => { fetchAgents(); }, []);
-  useRealtimeRefresh(['profiles', 'customers'], fetchAgents, 'agents-page');
+  useRealtimeRefresh(['profiles', 'clients'], fetchAgents, 'agents-page');
 
   const supervisors = useMemo(() => agents.filter(a => a.role === 'supervisor'), [agents]);
   const nameById = useMemo(
