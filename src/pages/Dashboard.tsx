@@ -166,7 +166,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
           {statCards.map((card, i) => (
             <Card key={card.title} className="shadow-card hover:shadow-premium transition-shadow duration-300 border-border/50 animate-in-up" style={{ animationDelay: `${i * 60}ms` }}>
               <CardContent className="p-4">
@@ -184,15 +184,19 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="flex items-end justify-between gap-1">
-                      <p className="text-lg font-bold tracking-tight leading-none">{card.value}</p>
-                      {'badge' in card && card.badge && Number(card.value) > 0 && (
+                      <p className="text-base font-bold tracking-tight leading-tight">{card.value}</p>
+                      {card.badge && Number(card.value) > 0 && (
                         <Badge className="bg-warning/15 text-warning border-warning/20 text-[9px] font-semibold px-1 py-0">
                           Review
                         </Badge>
                       )}
                     </div>
+                    {card.subtitle && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-1.5 leading-tight">{card.subtitle}</p>
+                    )}
                   </>
                 )}
+
               </CardContent>
             </Card>
           ))}
