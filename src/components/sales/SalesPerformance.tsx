@@ -14,13 +14,26 @@ interface Props {
 
 const COUNTED = ['approved', 'fulfilled'];
 
+const cur = (o: any) => o.currency || 'LRD';
+
 export function SalesPerformance({ orders, items, profiles, customerNames }: Props) {
   const sold = useMemo(() => orders.filter(o => COUNTED.includes(o.status)), [orders]);
 
-  const revenue = sold.reduce((s, o) => s + Number(o.total ?? o.subtotal ?? 0), 0);
-  const commission = sold.reduce((s, o) =>
-    s + Number(o.agent_commission_total ?? 0) + Number(o.supervisor_commission_total ?? 0) + Number(o.manager_commission_total ?? 0), 0);
-  const avg = sold.length ? revenue / sold.length : 0;
+  const currencies = useMemo(() => {
+    const set = Array.from(new Set(sold.map(cur)));
+    return set.length ? set.sort() : ['LRD'];
+  }, [sold]);
+
+  const totals = useMemo(() => currencies.map(c => {
+    const rows = sold.filter(o => cur(o) === c);
+    const revenue = rows.reduce((s, o) => s + Number(o.total ?? o.subtotal ?? 0), 0);
+    const commission = rows.reduce((s, o) =>
+      s + Number(o.agent_commission_total ?? 0) + Number(o.supervisor_commission_total ?? 0) + Number(o.manager_commission_total ?? 0), 0);
+    return { currency: c, revenue, commission, count: rows.length, avg: rows.length ? revenue / rows.length : 0 };
+  }), [sold, currencies]);
+
+  const mainCurrency = currencies[0];
+
 
   const revenueOverTime = useMemo(() => {
     const map = new Map<string, number>();
