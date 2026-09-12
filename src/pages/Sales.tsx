@@ -27,6 +27,15 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
+const DEAL_STATUS_MAP: Record<string, string> = {
+  pending_admin: 'pending_approval',
+  pending_wholesaler: 'pending_approval',
+  confirmed: 'approved',
+  delivered: 'fulfilled',
+  completed: 'fulfilled',
+  rejected: 'cancelled',
+};
+
 const SalesPage = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -42,14 +51,43 @@ const SalesPage = () => {
   const [invoiceOrder, setInvoiceOrder] = useState<any | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [ordersRes, itemsRes, profilesRes, customersRes] = await Promise.all([
+    const [ordersRes, itemsRes, dealsRes, dealItemsRes, profilesRes, customersRes] = await Promise.all([
       (supabase.from as any)('sales_orders').select('*').order('created_at', { ascending: false }),
       (supabase.from as any)('sales_order_items').select('*'),
+      supabase.from('deals').select('*').order('created_at', { ascending: false }),
+      supabase.from('order_items').select('*'),
       supabase.from('profiles').select('id, full_name, role'),
       supabase.from('clients').select('id, company_name').eq('client_type', 'retailer'),
     ]);
-    setOrders(ordersRes.data || []);
-    setItems(itemsRes.data || []);
+
+    const mappedDeals = (dealsRes.data || []).map((d: any) => ({
+      id: d.id,
+      source: 'deal',
+      order_number: d.deal_number,
+      customer_id: d.retailer_id,
+      agent_id: d.agent_id,
+      status: DEAL_STATUS_MAP[d.status as string] ?? 'pending_approval',
+      raw_status: d.status,
+      currency: d.currency || 'LRD',
+      subtotal: Number(d.deal_value ?? 0),
+      total: Number(d.deal_value ?? 0),
+      agent_commission_total: Number(d.agent_commission ?? 0),
+      supervisor_commission_total: Number(d.supervisor_commission ?? 0),
+      manager_commission_total: Number(d.operation_manager_commission ?? 0),
+      delivery_address: d.delivery_address,
+      delivery_date: d.delivery_date,
+      notes: d.notes,
+      created_at: d.created_at,
+    }));
+
+    const mappedOrders = (ordersRes.data || []).map((o: any) => ({ ...o, source: 'sales_order', currency: o.currency || 'LRD' }));
+
+    const mappedDealItems = (dealItemsRes.data || []).map((i: any) => ({ ...i, sales_order_id: i.deal_id }));
+
+    setOrders([...mappedOrders, ...mappedDeals].sort(
+      (a, b) => String(b.created_at).localeCompare(String(a.created_at)),
+    ));
+    setItems([...(itemsRes.data || []), ...mappedDealItems]);
     setProfiles(profilesRes.data || []);
     const names: Record<string, string> = {};
     (customersRes.data || []).forEach((c: any) => {
