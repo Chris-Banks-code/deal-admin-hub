@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DollarSign, ShoppingCart, TrendingUp, Percent } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
@@ -13,70 +14,93 @@ interface Props {
 }
 
 const COUNTED = ['approved', 'fulfilled'];
+const curOf = (o: any) => o.currency || 'LRD';
 
 export function SalesPerformance({ orders, items, profiles, customerNames }: Props) {
   const sold = useMemo(() => orders.filter(o => COUNTED.includes(o.status)), [orders]);
 
-  const revenue = sold.reduce((s, o) => s + Number(o.total ?? o.subtotal ?? 0), 0);
-  const commission = sold.reduce((s, o) =>
+  const currencies = useMemo(() => {
+    const set = Array.from(new Set(sold.map(curOf))).sort();
+    return set.length ? set : ['LRD'];
+  }, [sold]);
+
+  const [currency, setCurrency] = useState(currencies[0]);
+  useEffect(() => {
+    if (!currencies.includes(currency)) setCurrency(currencies[0]);
+  }, [currencies, currency]);
+
+  const rows = useMemo(() => sold.filter(o => curOf(o) === currency), [sold, currency]);
+
+  const revenue = rows.reduce((s, o) => s + Number(o.total ?? o.subtotal ?? 0), 0);
+  const commission = rows.reduce((s, o) =>
     s + Number(o.agent_commission_total ?? 0) + Number(o.supervisor_commission_total ?? 0) + Number(o.manager_commission_total ?? 0), 0);
-  const avg = sold.length ? revenue / sold.length : 0;
+  const avg = rows.length ? revenue / rows.length : 0;
 
   const revenueOverTime = useMemo(() => {
     const map = new Map<string, number>();
-    sold.forEach(o => {
+    rows.forEach(o => {
       const day = String(o.created_at).slice(0, 10);
       map.set(day, (map.get(day) || 0) + Number(o.total ?? o.subtotal ?? 0));
     });
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
       .map(([day, value]) => ({ day: day.slice(5), value }));
-  }, [sold]);
+  }, [rows]);
 
   const byAgent = useMemo(() => {
     const map = new Map<string, { name: string; revenue: number; orders: number }>();
-    sold.forEach(o => {
+    rows.forEach(o => {
       const name = profiles.find(p => p.id === o.agent_id)?.full_name || 'Unassigned';
-      const cur = map.get(o.agent_id ?? 'none') || { name, revenue: 0, orders: 0 };
-      cur.revenue += Number(o.total ?? o.subtotal ?? 0);
-      cur.orders += 1;
-      map.set(o.agent_id ?? 'none', cur);
+      const entry = map.get(o.agent_id ?? 'none') || { name, revenue: 0, orders: 0 };
+      entry.revenue += Number(o.total ?? o.subtotal ?? 0);
+      entry.orders += 1;
+      map.set(o.agent_id ?? 'none', entry);
     });
     return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
-  }, [sold, profiles]);
+  }, [rows, profiles]);
 
   const byProduct = useMemo(() => {
-    const soldIds = new Set(sold.map(o => o.id));
+    const soldIds = new Set(rows.map(o => o.id));
     const map = new Map<string, { name: string; qty: number; revenue: number }>();
     items.filter(i => soldIds.has(i.sales_order_id)).forEach(i => {
-      const cur = map.get(i.product_name) || { name: i.product_name, qty: 0, revenue: 0 };
-      cur.qty += Number(i.quantity || 0);
-      cur.revenue += Number(i.subtotal || 0);
-      map.set(i.product_name, cur);
+      const entry = map.get(i.product_name) || { name: i.product_name, qty: 0, revenue: 0 };
+      entry.qty += Number(i.quantity || 0);
+      entry.revenue += Number(i.subtotal || 0);
+      map.set(i.product_name, entry);
     });
     return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
-  }, [items, sold]);
+  }, [items, rows]);
 
   const byCustomer = useMemo(() => {
     const map = new Map<string, { name: string; revenue: number; orders: number }>();
-    sold.forEach(o => {
+    rows.forEach(o => {
       const key = o.customer_id ?? 'none';
-      const cur = map.get(key) || { name: customerNames[key] || 'Unknown', revenue: 0, orders: 0 };
-      cur.revenue += Number(o.total ?? o.subtotal ?? 0);
-      cur.orders += 1;
-      map.set(key, cur);
+      const entry = map.get(key) || { name: customerNames[key] || 'Unknown', revenue: 0, orders: 0 };
+      entry.revenue += Number(o.total ?? o.subtotal ?? 0);
+      entry.orders += 1;
+      map.set(key, entry);
     });
     return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
-  }, [sold, customerNames]);
+  }, [rows, customerNames]);
 
   const kpis = [
-    { label: 'Revenue', value: formatCurrency(revenue, 'LRD'), icon: DollarSign },
-    { label: 'Sales', value: String(sold.length), icon: ShoppingCart },
-    { label: 'Avg order value', value: formatCurrency(avg, 'LRD'), icon: TrendingUp },
-    { label: 'Commission earned', value: formatCurrency(commission, 'LRD'), icon: Percent },
+    { label: 'Sales value', value: formatCurrency(revenue, currency), icon: DollarSign },
+    { label: 'Sales', value: String(rows.length), icon: ShoppingCart },
+    { label: 'Avg order value', value: formatCurrency(avg, currency), icon: TrendingUp },
+    { label: 'Commission earned', value: formatCurrency(commission, currency), icon: Percent },
   ];
 
   return (
     <div className="space-y-4">
+      {currencies.length > 1 && (
+        <div className="flex gap-1">
+          {currencies.map(c => (
+            <Button key={c} size="sm" variant={c === currency ? 'default' : 'outline'} onClick={() => setCurrency(c)}>
+              {c}
+            </Button>
+          ))}
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map(k => (
           <Card key={k.label}>
@@ -93,7 +117,7 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Revenue over time</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Revenue over time ({currency})</CardTitle></CardHeader>
           <CardContent className="h-64">
             {revenueOverTime.length === 0 ? (
               <p className="text-sm text-muted-foreground py-16 text-center">No completed sales yet</p>
@@ -103,7 +127,7 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="day" fontSize={11} />
                   <YAxis fontSize={11} />
-                  <Tooltip formatter={(v: any) => formatCurrency(Number(v), 'LRD')} />
+                  <Tooltip formatter={(v: any) => formatCurrency(Number(v), currency)} />
                   <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -122,7 +146,7 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="name" fontSize={11} />
                   <YAxis fontSize={11} />
-                  <Tooltip formatter={(v: any) => formatCurrency(Number(v), 'LRD')} />
+                  <Tooltip formatter={(v: any) => formatCurrency(Number(v), currency)} />
                   <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -143,7 +167,7 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
                   <TableRow key={a.name}>
                     <TableCell className="text-sm">{a.name}</TableCell>
                     <TableCell className="text-sm">{a.orders}</TableCell>
-                    <TableCell className="text-sm text-right font-mono">{formatCurrency(a.revenue, 'LRD')}</TableCell>
+                    <TableCell className="text-sm text-right font-mono">{formatCurrency(a.revenue, currency)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -162,7 +186,7 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
                   <TableRow key={c.name}>
                     <TableCell className="text-sm">{c.name}</TableCell>
                     <TableCell className="text-sm">{c.orders}</TableCell>
-                    <TableCell className="text-sm text-right font-mono">{formatCurrency(c.revenue, 'LRD')}</TableCell>
+                    <TableCell className="text-sm text-right font-mono">{formatCurrency(c.revenue, currency)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
