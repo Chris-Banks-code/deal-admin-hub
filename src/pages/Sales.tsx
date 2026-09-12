@@ -98,7 +98,7 @@ const SalesPage = () => {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useRealtimeRefresh(['sales_orders', 'sales_order_items'], fetchData, 'sales-page');
+  useRealtimeRefresh(['sales_orders', 'sales_order_items', 'deals', 'order_items'], fetchData, 'sales-page');
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -112,12 +112,21 @@ const SalesPage = () => {
   }, [orders, search, statusFilter, profiles, customerNames]);
 
   const setStatus = async (order: any, status: string) => {
-    const patch: any = { status };
-    if (status === 'approved') {
-      patch.approved_by = profile?.id ?? null;
-      patch.approved_at = new Date().toISOString();
+    let error: any = null;
+    if (order.source === 'deal') {
+      const dealStatus = ({ approved: 'confirmed', fulfilled: 'delivered', cancelled: 'rejected' } as Record<string, string>)[status];
+      if (!dealStatus) return;
+      const patch: any = { status: dealStatus };
+      if (dealStatus === 'delivered') patch.delivered_at = new Date().toISOString();
+      ({ error } = await supabase.from('deals').update(patch).eq('id', order.id));
+    } else {
+      const patch: any = { status };
+      if (status === 'approved') {
+        patch.approved_by = profile?.id ?? null;
+        patch.approved_at = new Date().toISOString();
+      }
+      ({ error } = await (supabase.from as any)('sales_orders').update(patch).eq('id', order.id));
     }
-    const { error } = await (supabase.from as any)('sales_orders').update(patch).eq('id', order.id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
       return;
