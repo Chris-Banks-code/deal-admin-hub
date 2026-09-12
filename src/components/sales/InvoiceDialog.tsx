@@ -21,7 +21,9 @@ export function InvoiceDialog({ order, onOpenChange }: Props) {
     if (!order) { setItems([]); setCustomer(null); setAgent(null); return; }
     (async () => {
       const [itemsRes, custRes, agentRes] = await Promise.all([
-        (supabase.from as any)('sales_order_items').select('*').eq('sales_order_id', order.id),
+        order.source === 'deal'
+          ? supabase.from('order_items').select('*').eq('deal_id', order.id)
+          : (supabase.from as any)('sales_order_items').select('*').eq('sales_order_id', order.id),
         order.customer_id
           ? supabase.from('clients').select('id, company_name, contact_person, default_delivery_address, address, phone, company_email').eq('id', order.customer_id).maybeSingle()
           : Promise.resolve({ data: null }),
@@ -35,7 +37,7 @@ export function InvoiceDialog({ order, onOpenChange }: Props) {
     })();
   }, [order]);
 
-  const currency = 'LRD';
+  const currency = order?.currency || 'LRD';
   const party = customer ? { legal_name: customer.company_name, display_name: customer.company_name || customer.contact_person, address: customer.address, phone: customer.phone, email: customer.company_email } : null;
 
   const print = () => {

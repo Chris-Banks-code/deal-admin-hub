@@ -215,7 +215,7 @@ const SalesPage = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">
-                          {formatCurrency(o.total ?? o.subtotal, 'LRD')}
+                          {formatCurrency(o.total ?? o.subtotal, o.currency || 'LRD')}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
