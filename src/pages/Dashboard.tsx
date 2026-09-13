@@ -139,7 +139,7 @@ const Dashboard = () => {
   };
 
   const statCards: { title: string; subtitle?: string; value: any; icon: any; accent: string; badge?: boolean }[] = [
-    { title: 'Total Orders', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary' },
+    { title: 'Total Orders', subtitle: 'Agent & admin orders, all statuses', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary' },
     { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', badge: true },
     { title: 'Sales Value', subtitle: 'Goods sold for suppliers', value: currencyLines('sales'), icon: DollarSign, accent: 'bg-muted text-muted-foreground' },
     { title: 'Commission Earned', subtitle: 'Our share of those sales', value: currencyLines('commission'), icon: TrendingUp, accent: 'bg-success/10 text-success' },
