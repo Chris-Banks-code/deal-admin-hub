@@ -18,6 +18,7 @@ import { NewSaleDialog } from '@/components/sales/NewSaleDialog';
 import { InvoiceDialog } from '@/components/sales/InvoiceDialog';
 import { SalesPerformance } from '@/components/sales/SalesPerformance';
 import TargetsPage from '@/pages/Targets';
+import { normalizeDeal, normalizeSalesOrder } from '@/lib/sales-metrics';
 
 const STATUS_STYLES: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground',
@@ -27,14 +28,6 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
-const DEAL_STATUS_MAP: Record<string, string> = {
-  pending_admin: 'pending_approval',
-  pending_wholesaler: 'pending_approval',
-  confirmed: 'approved',
-  delivered: 'fulfilled',
-  completed: 'fulfilled',
-  rejected: 'cancelled',
-};
 
 const SalesPage = () => {
   const { toast } = useToast();
