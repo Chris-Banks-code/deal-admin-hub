@@ -49,24 +49,24 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [dealsRes, recentRes, agentsRes, itemsRes] = await Promise.all([
-        supabase.from('deals').select('id, status, deal_value, commission_amount, agent_commission, supervisor_commission, operation_manager_commission, created_at, currency'),
+      const [dealsRes, salesOrdersRes, recentRes, agentsRes, itemsRes, soItemsRes] = await Promise.all([
+        supabase.from('deals').select('*'),
+        (supabase.from as any)('sales_orders').select('*'),
         supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(6),
         supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
         supabase.from('order_items').select('deal_id, commission_amount'),
+        (supabase.from as any)('sales_order_items').select('sales_order_id, commission_amount'),
       ]);
 
       if (dealsRes.error) console.error('Stats fetch error:', dealsRes.error);
       if (recentRes.error) console.error('Recent deals fetch error:', recentRes.error);
 
-      const byDeal: Record<string, number> = {};
-      (itemsRes.data || []).forEach((i: any) => {
-        if (!i.deal_id) return;
-        byDeal[i.deal_id] = (byDeal[i.deal_id] || 0) + Number(i.commission_amount || 0);
-      });
-      setItemCommission(byDeal);
+      setItemCommission(commissionByOrder([...(itemsRes.data || []), ...(soItemsRes.data || [])]));
 
-      setAllDeals(dealsRes.data || []);
+      setAllOrders([
+        ...(dealsRes.data || []).map(normalizeDeal),
+        ...(salesOrdersRes.data || []).map(normalizeSalesOrder),
+      ]);
       setActiveAgents(agentsRes.data?.length || 0);
       setRecentDeals(recentRes.data || []);
     } catch (err) {
@@ -78,34 +78,21 @@ const Dashboard = () => {
   const stats = useMemo(() => {
     const cutoff = getDateCutoff(dateRange);
     const filtered = cutoff
-      ? allDeals.filter(d => new Date(d.created_at) >= cutoff)
-      : allDeals;
+      ? allOrders.filter(o => new Date(o.created_at) >= cutoff)
+      : allOrders;
 
     const totalOrders = filtered.length;
-    const pending = allDeals.filter(d => d.status === 'pending_admin').length;
-    // Agent-app orders finish as "delivered"; admin-created ones as "completed".
-    const completed = filtered.filter(d => d.status === 'completed' || d.status === 'delivered');
+    const pending = allOrders.filter(o => o.status === 'pending_approval').length;
 
-    // Totals kept strictly separate per currency (USD vs LRD are never added together).
-    // sales     = value of the goods sold (belongs to the supplier, not to Deal)
+    // Same rules as the Sales page (see src/lib/sales-metrics.ts):
+    // sales      = value of the goods sold (belongs to the supplier, not to Deal)
     // commission = the percentage Deal earns on those sales — the only money we share
-    // team      = commission paid out to agent + supervisor + operation manager
-    // deal      = what remains for Deal Group after paying the team
-    const byCurrency: Record<string, { sales: number; commission: number; team: number; deal: number }> = {};
-    for (const d of completed) {
-      const cur = d.currency || 'USD';
-      if (!byCurrency[cur]) byCurrency[cur] = { sales: 0, commission: 0, team: 0, deal: 0 };
-      const team = (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0);
-      // commission_amount is often blank on agent orders — fall back to the line items
-      const commission = Number(d.commission_amount || 0) || itemCommission[d.id] || team;
-      byCurrency[cur].sales      += d.deal_value || 0;
-      byCurrency[cur].commission += commission;
-      byCurrency[cur].team       += team;
-      byCurrency[cur].deal       += Math.max(commission - team, 0);
-    }
+    // team       = commission paid out to agent + supervisor + operation manager
+    // deal       = what remains for Deal Group after paying the team
+    const byCurrency = salesTotals(filtered, itemCommission);
 
     return { totalOrders, pending, byCurrency };
-  }, [allDeals, dateRange, itemCommission]);
+  }, [allOrders, dateRange, itemCommission]);
 
 
   // Render one line per currency so USD and LRD are shown side by side, never summed
