@@ -36,10 +36,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [allDeals, setAllDeals] = useState<any[]>([]);
+  const [allOrders, setAllOrders] = useState<NormalizedOrder[]>([]);
   const [activeAgents, setActiveAgents] = useState(0);
   const [recentDeals, setRecentDeals] = useState<any[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange>('this_month');
+  const [dateRange, setDateRange] = useState<DateRange>('all');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectingDealId, setRejectingDealId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
