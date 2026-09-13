@@ -87,9 +87,11 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
 
   const kpis = [
     { label: 'Sales value', value: formatCurrency(revenue, currency), icon: DollarSign },
-    { label: 'Sales', value: String(rows.length), icon: ShoppingCart },
+    { label: 'Sales', value: String(t.orders), icon: ShoppingCart },
     { label: 'Avg order value', value: formatCurrency(avg, currency), icon: TrendingUp },
     { label: 'Commission earned', value: formatCurrency(commission, currency), icon: Percent },
+    { label: 'Paid to team', value: formatCurrency(t.team, currency), icon: Wallet },
+    { label: 'Deal Group share', value: formatCurrency(t.deal, currency), icon: Building2 },
   ];
 
   return (
