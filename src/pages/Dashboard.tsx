@@ -118,7 +118,7 @@ const Dashboard = () => {
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Order approved — awaiting wholesaler' });
     setRecentDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'pending_wholesaler' } : d));
-    setAllDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'pending_wholesaler' } : d));
+    setAllOrders(prev => prev.map(o => o.id === dealId ? { ...o, status: toCanonicalStatus('pending_wholesaler'), raw_status: 'pending_wholesaler' } : o));
   };
 
   const openReject = (dealId: string) => {
@@ -134,7 +134,7 @@ const Dashboard = () => {
     toast({ title: 'Order rejected' });
     setShowRejectDialog(false);
     setRecentDeals(prev => prev.map(d => d.id === rejectingDealId ? { ...d, status: 'rejected' } : d));
-    setAllDeals(prev => prev.map(d => d.id === rejectingDealId ? { ...d, status: 'rejected' } : d));
+    setAllOrders(prev => prev.map(o => o.id === rejectingDealId ? { ...o, status: toCanonicalStatus('rejected'), raw_status: 'rejected' } : o));
     setRejectingDealId(null);
   };
 
