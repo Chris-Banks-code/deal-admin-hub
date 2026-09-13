@@ -15,6 +15,10 @@ import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
+import {
+  commissionByOrder, normalizeDeal, normalizeSalesOrder, salesTotals,
+  toCanonicalStatus, NormalizedOrder,
+} from '@/lib/sales-metrics';
 
 type DateRange = 'this_month' | 'last_30' | 'last_3m' | 'this_year' | 'all';
 
