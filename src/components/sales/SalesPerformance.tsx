@@ -31,10 +31,13 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
 
   const rows = useMemo(() => sold.filter(o => curOf(o) === currency), [sold, currency]);
 
-  const revenue = rows.reduce((s, o) => s + Number(o.total ?? o.subtotal ?? 0), 0);
-  const commission = rows.reduce((s, o) =>
-    s + Number(o.agent_commission_total ?? 0) + Number(o.supervisor_commission_total ?? 0) + Number(o.manager_commission_total ?? 0), 0);
-  const avg = rows.length ? revenue / rows.length : 0;
+  const itemComm = useMemo(() => commissionByOrder(items), [items]);
+  const totals = useMemo(() => salesTotals(orders as any, itemComm), [orders, itemComm]);
+  const t = totals[currency] ?? { orders: 0, sales: 0, commission: 0, team: 0, deal: 0 };
+
+  const revenue = t.sales;
+  const commission = t.commission;
+  const avg = t.orders ? revenue / t.orders : 0;
 
   const revenueOverTime = useMemo(() => {
     const map = new Map<string, number>();
