@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { DollarSign, ShoppingCart, TrendingUp, Percent } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, Percent, Wallet, Building2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import { commissionByOrder, isEarning, salesTotals } from '@/lib/sales-metrics';
 
 interface Props {
   orders: any[];
