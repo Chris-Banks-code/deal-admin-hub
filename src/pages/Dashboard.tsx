@@ -110,7 +110,7 @@ const Dashboard = () => {
 
 
   useEffect(() => { fetchData(); }, []);
-  useRealtimeRefresh(['deals', 'profiles'], fetchData, 'dashboard-page');
+  useRealtimeRefresh(['deals', 'order_items', 'sales_orders', 'sales_order_items', 'profiles'], fetchData, 'dashboard-page');
 
   const handleApprove = async (dealId: string) => {
     // Approve moves pending_admin → pending_wholesaler, not completed
