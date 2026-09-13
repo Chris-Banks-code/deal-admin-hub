@@ -53,27 +53,9 @@ const SalesPage = () => {
       supabase.from('clients').select('id, company_name').eq('client_type', 'retailer'),
     ]);
 
-    const mappedDeals = (dealsRes.data || []).map((d: any) => ({
-      id: d.id,
-      source: 'deal',
-      order_number: d.deal_number,
-      customer_id: d.retailer_id,
-      agent_id: d.agent_id,
-      status: DEAL_STATUS_MAP[d.status as string] ?? 'pending_approval',
-      raw_status: d.status,
-      currency: d.currency || 'LRD',
-      subtotal: Number(d.deal_value ?? 0),
-      total: Number(d.deal_value ?? 0),
-      agent_commission_total: Number(d.agent_commission ?? 0),
-      supervisor_commission_total: Number(d.supervisor_commission ?? 0),
-      manager_commission_total: Number(d.operation_manager_commission ?? 0),
-      delivery_address: d.delivery_address,
-      delivery_date: d.delivery_date,
-      notes: d.notes,
-      created_at: d.created_at,
-    }));
+    const mappedDeals = (dealsRes.data || []).map(normalizeDeal);
 
-    const mappedOrders = (ordersRes.data || []).map((o: any) => ({ ...o, source: 'sales_order', currency: o.currency || 'LRD' }));
+    const mappedOrders = (ordersRes.data || []).map(normalizeSalesOrder);
 
     const mappedDealItems = (dealItemsRes.data || []).map((i: any) => ({ ...i, sales_order_id: i.deal_id }));
 
