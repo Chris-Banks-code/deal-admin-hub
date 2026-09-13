@@ -14,11 +14,10 @@ interface Props {
   customerNames: Record<string, string>;
 }
 
-const COUNTED = ['approved', 'fulfilled'];
 const curOf = (o: any) => o.currency || 'LRD';
 
 export function SalesPerformance({ orders, items, profiles, customerNames }: Props) {
-  const sold = useMemo(() => orders.filter(o => COUNTED.includes(o.status)), [orders]);
+  const sold = useMemo(() => orders.filter(isEarning), [orders]);
 
   const currencies = useMemo(() => {
     const set = Array.from(new Set(sold.map(curOf))).sort();
