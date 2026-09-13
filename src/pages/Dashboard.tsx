@@ -15,6 +15,10 @@ import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
+import {
+  commissionByOrder, normalizeDeal, normalizeSalesOrder, salesTotals,
+  toCanonicalStatus, NormalizedOrder,
+} from '@/lib/sales-metrics';
 
 type DateRange = 'this_month' | 'last_30' | 'last_3m' | 'this_year' | 'all';
 
@@ -32,10 +36,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [allDeals, setAllDeals] = useState<any[]>([]);
+  const [allOrders, setAllOrders] = useState<NormalizedOrder[]>([]);
   const [activeAgents, setActiveAgents] = useState(0);
   const [recentDeals, setRecentDeals] = useState<any[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange>('this_month');
+  const [dateRange, setDateRange] = useState<DateRange>('all');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectingDealId, setRejectingDealId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -45,24 +49,24 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [dealsRes, recentRes, agentsRes, itemsRes] = await Promise.all([
-        supabase.from('deals').select('id, status, deal_value, commission_amount, agent_commission, supervisor_commission, operation_manager_commission, created_at, currency'),
+      const [dealsRes, salesOrdersRes, recentRes, agentsRes, itemsRes, soItemsRes] = await Promise.all([
+        supabase.from('deals').select('*'),
+        (supabase.from as any)('sales_orders').select('*'),
         supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(6),
         supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
         supabase.from('order_items').select('deal_id, commission_amount'),
+        (supabase.from as any)('sales_order_items').select('sales_order_id, commission_amount'),
       ]);
 
       if (dealsRes.error) console.error('Stats fetch error:', dealsRes.error);
       if (recentRes.error) console.error('Recent deals fetch error:', recentRes.error);
 
-      const byDeal: Record<string, number> = {};
-      (itemsRes.data || []).forEach((i: any) => {
-        if (!i.deal_id) return;
-        byDeal[i.deal_id] = (byDeal[i.deal_id] || 0) + Number(i.commission_amount || 0);
-      });
-      setItemCommission(byDeal);
+      setItemCommission(commissionByOrder([...(itemsRes.data || []), ...(soItemsRes.data || [])]));
 
-      setAllDeals(dealsRes.data || []);
+      setAllOrders([
+        ...(dealsRes.data || []).map(normalizeDeal),
+        ...(salesOrdersRes.data || []).map(normalizeSalesOrder),
+      ]);
       setActiveAgents(agentsRes.data?.length || 0);
       setRecentDeals(recentRes.data || []);
     } catch (err) {
@@ -74,34 +78,21 @@ const Dashboard = () => {
   const stats = useMemo(() => {
     const cutoff = getDateCutoff(dateRange);
     const filtered = cutoff
-      ? allDeals.filter(d => new Date(d.created_at) >= cutoff)
-      : allDeals;
+      ? allOrders.filter(o => new Date(o.created_at) >= cutoff)
+      : allOrders;
 
     const totalOrders = filtered.length;
-    const pending = allDeals.filter(d => d.status === 'pending_admin').length;
-    // Agent-app orders finish as "delivered"; admin-created ones as "completed".
-    const completed = filtered.filter(d => d.status === 'completed' || d.status === 'delivered');
+    const pending = allOrders.filter(o => o.status === 'pending_approval').length;
 
-    // Totals kept strictly separate per currency (USD vs LRD are never added together).
-    // sales     = value of the goods sold (belongs to the supplier, not to Deal)
+    // Same rules as the Sales page (see src/lib/sales-metrics.ts):
+    // sales      = value of the goods sold (belongs to the supplier, not to Deal)
     // commission = the percentage Deal earns on those sales — the only money we share
-    // team      = commission paid out to agent + supervisor + operation manager
-    // deal      = what remains for Deal Group after paying the team
-    const byCurrency: Record<string, { sales: number; commission: number; team: number; deal: number }> = {};
-    for (const d of completed) {
-      const cur = d.currency || 'USD';
-      if (!byCurrency[cur]) byCurrency[cur] = { sales: 0, commission: 0, team: 0, deal: 0 };
-      const team = (d.agent_commission || 0) + (d.supervisor_commission || 0) + (d.operation_manager_commission || 0);
-      // commission_amount is often blank on agent orders — fall back to the line items
-      const commission = Number(d.commission_amount || 0) || itemCommission[d.id] || team;
-      byCurrency[cur].sales      += d.deal_value || 0;
-      byCurrency[cur].commission += commission;
-      byCurrency[cur].team       += team;
-      byCurrency[cur].deal       += Math.max(commission - team, 0);
-    }
+    // team       = commission paid out to agent + supervisor + operation manager
+    // deal       = what remains for Deal Group after paying the team
+    const byCurrency = salesTotals(filtered, itemCommission);
 
     return { totalOrders, pending, byCurrency };
-  }, [allDeals, dateRange, itemCommission]);
+  }, [allOrders, dateRange, itemCommission]);
 
 
   // Render one line per currency so USD and LRD are shown side by side, never summed
@@ -119,7 +110,7 @@ const Dashboard = () => {
 
 
   useEffect(() => { fetchData(); }, []);
-  useRealtimeRefresh(['deals', 'profiles'], fetchData, 'dashboard-page');
+  useRealtimeRefresh(['deals', 'order_items', 'sales_orders', 'sales_order_items', 'profiles'], fetchData, 'dashboard-page');
 
   const handleApprove = async (dealId: string) => {
     // Approve moves pending_admin → pending_wholesaler, not completed
@@ -127,7 +118,7 @@ const Dashboard = () => {
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Order approved — awaiting wholesaler' });
     setRecentDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'pending_wholesaler' } : d));
-    setAllDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'pending_wholesaler' } : d));
+    setAllOrders(prev => prev.map(o => o.id === dealId ? { ...o, status: toCanonicalStatus('pending_wholesaler'), raw_status: 'pending_wholesaler' } : o));
   };
 
   const openReject = (dealId: string) => {
@@ -143,12 +134,12 @@ const Dashboard = () => {
     toast({ title: 'Order rejected' });
     setShowRejectDialog(false);
     setRecentDeals(prev => prev.map(d => d.id === rejectingDealId ? { ...d, status: 'rejected' } : d));
-    setAllDeals(prev => prev.map(d => d.id === rejectingDealId ? { ...d, status: 'rejected' } : d));
+    setAllOrders(prev => prev.map(o => o.id === rejectingDealId ? { ...o, status: toCanonicalStatus('rejected'), raw_status: 'rejected' } : o));
     setRejectingDealId(null);
   };
 
   const statCards: { title: string; subtitle?: string; value: any; icon: any; accent: string; badge?: boolean }[] = [
-    { title: 'Total Orders', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary' },
+    { title: 'Total Orders', subtitle: 'Agent & admin orders, all statuses', value: stats.totalOrders, icon: Package, accent: 'bg-primary/8 text-primary' },
     { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', badge: true },
     { title: 'Sales Value', subtitle: 'Goods sold for suppliers', value: currencyLines('sales'), icon: DollarSign, accent: 'bg-muted text-muted-foreground' },
     { title: 'Commission Earned', subtitle: 'Our share of those sales', value: currencyLines('commission'), icon: TrendingUp, accent: 'bg-success/10 text-success' },

@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { DollarSign, ShoppingCart, TrendingUp, Percent } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, Percent, Wallet, Building2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import { commissionByOrder, isEarning, salesTotals } from '@/lib/sales-metrics';
 
 interface Props {
   orders: any[];
@@ -13,11 +14,10 @@ interface Props {
   customerNames: Record<string, string>;
 }
 
-const COUNTED = ['approved', 'fulfilled'];
 const curOf = (o: any) => o.currency || 'LRD';
 
 export function SalesPerformance({ orders, items, profiles, customerNames }: Props) {
-  const sold = useMemo(() => orders.filter(o => COUNTED.includes(o.status)), [orders]);
+  const sold = useMemo(() => orders.filter(isEarning), [orders]);
 
   const currencies = useMemo(() => {
     const set = Array.from(new Set(sold.map(curOf))).sort();
@@ -31,10 +31,13 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
 
   const rows = useMemo(() => sold.filter(o => curOf(o) === currency), [sold, currency]);
 
-  const revenue = rows.reduce((s, o) => s + Number(o.total ?? o.subtotal ?? 0), 0);
-  const commission = rows.reduce((s, o) =>
-    s + Number(o.agent_commission_total ?? 0) + Number(o.supervisor_commission_total ?? 0) + Number(o.manager_commission_total ?? 0), 0);
-  const avg = rows.length ? revenue / rows.length : 0;
+  const itemComm = useMemo(() => commissionByOrder(items), [items]);
+  const totals = useMemo(() => salesTotals(orders as any, itemComm), [orders, itemComm]);
+  const t = totals[currency] ?? { orders: 0, sales: 0, commission: 0, team: 0, deal: 0 };
+
+  const revenue = t.sales;
+  const commission = t.commission;
+  const avg = t.orders ? revenue / t.orders : 0;
 
   const revenueOverTime = useMemo(() => {
     const map = new Map<string, number>();
@@ -84,9 +87,11 @@ export function SalesPerformance({ orders, items, profiles, customerNames }: Pro
 
   const kpis = [
     { label: 'Sales value', value: formatCurrency(revenue, currency), icon: DollarSign },
-    { label: 'Sales', value: String(rows.length), icon: ShoppingCart },
+    { label: 'Sales', value: String(t.orders), icon: ShoppingCart },
     { label: 'Avg order value', value: formatCurrency(avg, currency), icon: TrendingUp },
     { label: 'Commission earned', value: formatCurrency(commission, currency), icon: Percent },
+    { label: 'Paid to team', value: formatCurrency(t.team, currency), icon: Wallet },
+    { label: 'Deal Group share', value: formatCurrency(t.deal, currency), icon: Building2 },
   ];
 
   return (
