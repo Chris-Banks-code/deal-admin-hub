@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -119,7 +119,7 @@ export function JournalTab({ currency, entries, lines, accounts, onChanged }: Pr
                 </TableCell></TableRow>
               )}
               {rows.map(e => (
-                <>
+                <Fragment key={e.id}>
                   <TableRow key={e.id} className="cursor-pointer"
                     onClick={() => setExpanded(expanded === e.id ? null : e.id)}>
                     <TableCell className="font-mono text-xs">{e.entry_number}</TableCell>
@@ -154,7 +154,7 @@ export function JournalTab({ currency, entries, lines, accounts, onChanged }: Pr
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               ))}
             </TableBody>
           </Table>
