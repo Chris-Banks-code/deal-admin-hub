@@ -18,6 +18,7 @@ import TargetsPage from "./pages/Targets";
 import SalesPage from "./pages/Sales";
 import ComingSoon from "./pages/ComingSoon";
 import AgentsPage from "./pages/Agents";
+import FinancePage from "./pages/Finance";
 import { MODULES } from "./lib/erp-modules";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const REAL_ROUTES: Record<string, boolean> = {
   '/customers': true, // Clients page reused as Customers
   '/agents': true,
   '/sales': true,
+  '/finance': true,
 };
 
 const App = () => (
@@ -53,6 +55,7 @@ const App = () => (
             <Route path="/customers" element={<ProtectedRoute module="customers"><ClientsPage /></ProtectedRoute>} />
             <Route path="/agents" element={<ProtectedRoute module="agents"><AgentsPage /></ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute module="sales"><SalesPage /></ProtectedRoute>} />
+            <Route path="/finance" element={<ProtectedRoute module="finance"><FinancePage /></ProtectedRoute>} />
             {/* Legacy alias */}
             <Route path="/clients" element={<Navigate to="/customers" replace />} />
 
