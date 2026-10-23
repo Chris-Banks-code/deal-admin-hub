@@ -3,6 +3,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,6 +21,7 @@ import {
   toCanonicalStatus, NormalizedOrder,
 } from '@/lib/sales-metrics';
 
+import { periodWindow, currentWeekValue, type PeriodMode } from '@/lib/finance';
 type DateRange = 'this_month' | 'last_30' | 'last_3m' | 'this_year' | 'all';
 
 const getDateCutoff = (range: DateRange): Date | null => {
@@ -39,7 +41,9 @@ const Dashboard = () => {
   const [allOrders, setAllOrders] = useState<NormalizedOrder[]>([]);
   const [activeAgents, setActiveAgents] = useState(0);
   const [recentDeals, setRecentDeals] = useState<any[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [mode, setMode] = useState<PeriodMode>('overall');
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [week, setWeek] = useState(currentWeekValue());
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectingDealId, setRejectingDealId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -76,9 +80,9 @@ const Dashboard = () => {
   };
 
   const stats = useMemo(() => {
-    const cutoff = getDateCutoff(dateRange);
-    const filtered = cutoff
-      ? allOrders.filter(o => new Date(o.created_at) >= cutoff)
+    const win = periodWindow(mode, month, week);
+    const filtered = win
+      ? allOrders.filter(o => { const d = new Date(o.created_at); return d >= win[0] && d < win[1]; })
       : allOrders;
 
     const totalOrders = filtered.length;
@@ -92,7 +96,7 @@ const Dashboard = () => {
     const byCurrency = salesTotals(filtered, itemCommission);
 
     return { totalOrders, pending, byCurrency };
-  }, [allOrders, dateRange, itemCommission]);
+  }, [allOrders, mode, month, week, itemCommission]);
 
 
   // Render one line per currency so USD and LRD are shown side by side, never summed
@@ -153,20 +157,26 @@ const Dashboard = () => {
     <DashboardLayout title="Dashboard">
       <div className="space-y-8">
         {/* Welcome + date range */}
-        <div className="flex items-center justify-between animate-in-up">
+        <div className="flex flex-wrap items-center justify-between gap-3 animate-in-up">
           <p className="text-sm text-muted-foreground">Here's what's happening with your platform today.</p>
-          <Select value={dateRange} onValueChange={v => setDateRange(v as DateRange)}>
-            <SelectTrigger className="w-[160px] h-9 text-xs font-medium bg-card shadow-card border-border/50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this_month">This Month</SelectItem>
-              <SelectItem value="last_30">Last 30 Days</SelectItem>
-              <SelectItem value="last_3m">Last 3 Months</SelectItem>
-              <SelectItem value="this_year">This Year</SelectItem>
-              <SelectItem value="all">All Time</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-md border border-border/50 bg-card p-0.5">
+              {(['overall', 'month', 'week'] as PeriodMode[]).map(m => (
+                <Button key={m} size="sm" variant={mode === m ? 'secondary' : 'ghost'}
+                  className="h-8 px-3 text-xs" onClick={() => setMode(m)}>
+                  {m === 'overall' ? 'Overall' : m === 'month' ? 'Monthly' : 'Weekly'}
+                </Button>
+              ))}
+            </div>
+            {mode === 'month' && (
+              <Input type="month" aria-label="Month" className="h-9 w-[160px] text-xs"
+                value={month} onChange={e => setMonth(e.target.value)} />
+            )}
+            {mode === 'week' && (
+              <Input type="week" aria-label="Week" className="h-9 w-[170px] text-xs"
+                value={week} onChange={e => setWeek(e.target.value)} />
+            )}
+          </div>
         </div>
 
         {/* Stats */}

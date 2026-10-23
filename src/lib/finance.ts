@@ -163,3 +163,28 @@ export const monthLabel = (key: string) => {
   return new Date(Number(y), Number(m) - 1, 1)
     .toLocaleString('en-US', { month: 'short', year: '2-digit' });
 };
+
+/** Dashboard period: overall, a calendar month ('YYYY-MM'), or an ISO week ('YYYY-Www'). */
+export type PeriodMode = 'overall' | 'month' | 'week';
+
+export const periodWindow = (mode: PeriodMode, month: string, week: string): [Date, Date] | null => {
+  if (mode === 'month' && month) {
+    const [y, m] = month.split('-').map(Number);
+    return [new Date(y, m - 1, 1), new Date(y, m, 1)];
+  }
+  if (mode === 'week' && week) {
+    const [y, w] = week.split('-W').map(Number);
+    const jan4 = new Date(y, 0, 4);
+    const monday = new Date(y, 0, 4 - ((jan4.getDay() + 6) % 7) + (w - 1) * 7);
+    return [monday, new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7)];
+  }
+  return null;
+};
+
+export const currentWeekValue = (d = new Date()) => {
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const y = t.getFullYear();
+  const jan4 = new Date(y, 0, 4);
+  const w = 1 + Math.round(((t.getTime() - jan4.getTime()) / 864e5 - 3 + ((jan4.getDay() + 6) % 7)) / 7);
+  return `${y}-W${String(w).padStart(2, '0')}`;
+};
