@@ -24,3 +24,16 @@ describe('finance totals', () => {
     expect(t.LRD.expenses).toBe(0);
   });
 });
+
+import { periodWindow } from '@/lib/finance';
+describe('dashboard period', () => {
+  it('month covers the whole calendar month', () => {
+    const [a, b] = periodWindow('month', '2026-09', '')!;
+    expect(a.getDate()).toBe(1); expect(a.getMonth()).toBe(8); expect(b.getMonth()).toBe(9);
+  });
+  it('week starts on Monday and spans 7 days', () => {
+    const [a, b] = periodWindow('week', '', '2026-W38')!;
+    expect(a.getDay()).toBe(1); expect(a.getDate()).toBe(14); expect((b.getTime() - a.getTime()) / 864e5).toBe(7);
+  });
+  it('overall has no window', () => { expect(periodWindow('overall', '2026-09', '')).toBeNull(); });
+});
