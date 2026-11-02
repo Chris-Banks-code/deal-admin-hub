@@ -340,6 +340,65 @@ export type Database = {
           },
         ]
       }
+      commission_bonuses: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          payment_id: string | null
+          period: string | null
+          profile_id: string | null
+          reason: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          period?: string | null
+          profile_id?: string | null
+          reason?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          period?: string | null
+          profile_id?: string | null
+          reason?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_bonuses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_payouts: {
         Row: {
           amount: number
@@ -406,6 +465,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      commission_rules: {
+        Row: {
+          agent_pct: number
+          id: string
+          manager_pct: number
+          supervisor_pct: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agent_pct?: number
+          id?: string
+          manager_pct?: number
+          supervisor_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agent_pct?: number
+          id?: string
+          manager_pct?: number
+          supervisor_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       commissions: {
         Row: {
