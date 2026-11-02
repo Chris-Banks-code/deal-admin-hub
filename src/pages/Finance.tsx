@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFinanceData } from '@/hooks/useFinanceData';
 import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
-import { financeTotals } from '@/lib/finance';
+import { financeTotals, periodWindow, currentWeekValue, inWindow, type PeriodMode } from '@/lib/finance';
+import { PeriodPicker } from '@/components/PeriodPicker';
 import { CurrencyTabs } from '@/components/finance/CurrencyTabs';
 import { FinanceOverview } from '@/components/finance/FinanceOverview';
 import { ExpensesTab } from '@/components/finance/ExpensesTab';
@@ -19,9 +20,27 @@ const FinancePage = () => {
   const d = useFinanceData();
   useRealtimeRefresh(['deals', 'sales_orders', 'expenses', 'payments', 'commission_payouts'], d.refresh, 'finance-page');
 
+  const [mode, setMode] = useState<PeriodMode>('overall');
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [week, setWeek] = useState(currentWeekValue());
+
+  // Everything time-sensitive is narrowed to the chosen period
+  const p = useMemo(() => {
+    const win = periodWindow(mode, month, week);
+    return {
+      orders: inWindow(d.orders, win, 'created_at'),
+      deals: inWindow(d.deals, win, 'created_at'),
+      salesOrders: inWindow(d.salesOrders, win, 'created_at'),
+      expenses: inWindow(d.expenses, win, 'expense_date', 'created_at'),
+      payments: inWindow(d.payments, win, 'payment_date', 'created_at'),
+      payouts: inWindow(d.payouts, win, 'paid_at', 'created_at'),
+      entries: inWindow(d.entries, win, 'entry_date', 'created_at'),
+    };
+  }, [d.orders, d.deals, d.salesOrders, d.expenses, d.payments, d.payouts, d.entries, mode, month, week]);
+
   const allTotals = useMemo(() => financeTotals({
-    orders: d.orders, items: d.items, expenses: d.expenses, payments: d.payments, payouts: d.payouts,
-  }), [d.orders, d.items, d.expenses, d.payments, d.payouts]);
+    orders: p.orders, items: d.items, expenses: p.expenses, payments: p.payments, payouts: p.payouts,
+  }), [p, d.items]);
 
   const currencies = useMemo(() => Object.keys(allTotals).sort(), [allTotals]);
   const [currency, setCurrency] = useState('LRD');
@@ -37,7 +56,10 @@ const FinancePage = () => {
           <p className="text-sm text-muted-foreground">
             Commission income, team payouts, expenses, payments and statements — LRD and USD kept separate.
           </p>
-          <CurrencyTabs currencies={currencies} value={currency} onChange={setCurrency} />
+          <div className="flex flex-wrap items-center gap-2">
+            <PeriodPicker mode={mode} month={month} week={week} onMode={setMode} onMonth={setMonth} onWeek={setWeek} />
+            <CurrencyTabs currencies={currencies} value={currency} onChange={setCurrency} />
+          </div>
         </div>
 
         {d.loading ? <Skeleton className="h-96 w-full" /> : (
@@ -54,25 +76,25 @@ const FinancePage = () => {
             </TabsList>
 
             <TabsContent value="overview" className="mt-4">
-              <FinanceOverview currency={currency} orders={d.orders} items={d.items} expenses={d.expenses}
-                payments={d.payments} payouts={d.payouts} banks={d.banks} />
+              <FinanceOverview currency={currency} orders={p.orders} items={d.items} expenses={p.expenses}
+                payments={p.payments} payouts={p.payouts} banks={d.banks} />
             </TabsContent>
             <TabsContent value="payouts" className="mt-4">
-              <PayoutsTab currency={currency} deals={d.deals} salesOrders={d.salesOrders} profiles={d.profiles}
-                payouts={d.payouts} banks={d.banks} onChanged={d.refresh} />
+              <PayoutsTab currency={currency} deals={p.deals} salesOrders={p.salesOrders} profiles={d.profiles}
+                payouts={p.payouts} banks={d.banks} onChanged={d.refresh} />
             </TabsContent>
             <TabsContent value="expenses" className="mt-4">
-              <ExpensesTab currency={currency} expenses={d.expenses} banks={d.banks} onChanged={d.refresh} />
+              <ExpensesTab currency={currency} expenses={p.expenses} banks={d.banks} onChanged={d.refresh} />
             </TabsContent>
             <TabsContent value="payments" className="mt-4">
-              <PaymentsTab currency={currency} payments={d.payments} clients={d.clients} banks={d.banks}
+              <PaymentsTab currency={currency} payments={p.payments} clients={d.clients} banks={d.banks}
                 receivable={totals.receivable} onChanged={d.refresh} />
             </TabsContent>
             <TabsContent value="statements" className="mt-4">
-              <StatementsTab currency={currency} totals={totals} expenses={d.expenses} banks={d.banks} />
+              <StatementsTab currency={currency} totals={totals} expenses={p.expenses} banks={d.banks} />
             </TabsContent>
             <TabsContent value="journal" className="mt-4">
-              <JournalTab currency={currency} entries={d.entries} lines={d.lines} accounts={d.accounts} onChanged={d.refresh} />
+              <JournalTab currency={currency} entries={p.entries} lines={d.lines} accounts={d.accounts} onChanged={d.refresh} />
             </TabsContent>
             <TabsContent value="accounts" className="mt-4">
               <AccountsTab accounts={d.accounts} banks={d.banks} onChanged={d.refresh} />

@@ -21,7 +21,8 @@ import {
   toCanonicalStatus, NormalizedOrder,
 } from '@/lib/sales-metrics';
 
-import { periodWindow, currentWeekValue, type PeriodMode } from '@/lib/finance';
+import { periodWindow, currentWeekValue, inWindow, payoutsPaidByCurrency, type PeriodMode } from '@/lib/finance';
+import { PeriodPicker } from '@/components/PeriodPicker';
 type DateRange = 'this_month' | 'last_30' | 'last_3m' | 'this_year' | 'all';
 
 const getDateCutoff = (range: DateRange): Date | null => {
@@ -49,23 +50,26 @@ const Dashboard = () => {
   const [rejectReason, setRejectReason] = useState('');
 
   const [itemCommission, setItemCommission] = useState<Record<string, number>>({});
+  const [payouts, setPayouts] = useState<any[]>([]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [dealsRes, salesOrdersRes, recentRes, agentsRes, itemsRes, soItemsRes] = await Promise.all([
+      const [dealsRes, salesOrdersRes, recentRes, agentsRes, itemsRes, soItemsRes, payoutsRes] = await Promise.all([
         supabase.from('deals').select('*'),
         (supabase.from as any)('sales_orders').select('*'),
         supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(6),
         supabase.from('profiles').select('id').eq('role', 'agent').eq('status', 'active'),
         supabase.from('order_items').select('deal_id, commission_amount'),
         (supabase.from as any)('sales_order_items').select('sales_order_id, commission_amount'),
+        (supabase.from as any)('commission_payouts').select('amount, currency, status, paid_at, created_at'),
       ]);
 
       if (dealsRes.error) console.error('Stats fetch error:', dealsRes.error);
       if (recentRes.error) console.error('Recent deals fetch error:', recentRes.error);
 
       setItemCommission(commissionByOrder([...(itemsRes.data || []), ...(soItemsRes.data || [])]));
+      setPayouts(payoutsRes.data || []);
 
       setAllOrders([
         ...(dealsRes.data || []).map(normalizeDeal),
@@ -93,14 +97,24 @@ const Dashboard = () => {
     // commission = the percentage Deal earns on those sales — the only money we share
     // team       = commission paid out to agent + supervisor + operation manager
     // deal       = what remains for Deal Group after paying the team
-    const byCurrency = salesTotals(filtered, itemCommission);
+    const totals = salesTotals(filtered, itemCommission);
+    // Paid = payouts actually marked paid in this period; owed = team commission earned − paid
+    const paid = payoutsPaidByCurrency(inWindow(payouts, win, 'paid_at', 'created_at'));
+    const byCurrency: Record<string, { sales: number; commission: number; team: number; paid: number; owed: number; deal: number }> = {};
+    Object.entries(totals).forEach(([cur, v]: [string, any]) => {
+      const p = paid[cur] || 0;
+      byCurrency[cur] = { ...v, paid: p, owed: Math.max(v.team - p, 0) };
+    });
+    Object.entries(paid).forEach(([cur, p]) => {
+      if (!byCurrency[cur]) byCurrency[cur] = { sales: 0, commission: 0, team: 0, deal: 0, paid: p, owed: 0 };
+    });
 
     return { totalOrders, pending, byCurrency };
-  }, [allOrders, mode, month, week, itemCommission]);
+  }, [allOrders, mode, month, week, itemCommission, payouts]);
 
 
   // Render one line per currency so USD and LRD are shown side by side, never summed
-  const currencyLines = (key: 'sales' | 'commission' | 'team' | 'deal') => {
+  const currencyLines = (key: 'sales' | 'commission' | 'team' | 'paid' | 'owed' | 'deal') => {
     const entries = Object.entries(stats.byCurrency);
     if (entries.length === 0) return <span>{formatCurrency(0, 'LRD')}</span>;
     return (
@@ -114,7 +128,7 @@ const Dashboard = () => {
 
 
   useEffect(() => { fetchData(); }, []);
-  useRealtimeRefresh(['deals', 'order_items', 'sales_orders', 'sales_order_items', 'profiles'], fetchData, 'dashboard-page');
+  useRealtimeRefresh(['deals', 'order_items', 'sales_orders', 'sales_order_items', 'profiles', 'commission_payouts'], fetchData, 'dashboard-page');
 
   const handleApprove = async (dealId: string) => {
     // Approve moves pending_admin → pending_wholesaler, not completed
@@ -147,8 +161,10 @@ const Dashboard = () => {
     { title: 'Pending Approvals', value: stats.pending, icon: Clock, accent: 'bg-warning/10 text-warning', badge: true },
     { title: 'Sales Value', subtitle: 'Goods sold for suppliers', value: currencyLines('sales'), icon: DollarSign, accent: 'bg-muted text-muted-foreground' },
     { title: 'Commission Earned', subtitle: 'Our share of those sales', value: currencyLines('commission'), icon: TrendingUp, accent: 'bg-success/10 text-success' },
-    { title: 'Paid To Team', subtitle: 'Agents & managers', value: currencyLines('team'), icon: Wallet, accent: 'bg-accent/10 text-accent' },
-    { title: 'Deal Group Share', subtitle: 'Commission left after payouts', value: currencyLines('deal'), icon: Building2, accent: 'bg-primary/8 text-primary' },
+    { title: 'Team Commission', subtitle: 'Earned by agents & managers', value: currencyLines('team'), icon: Users, accent: 'bg-accent/10 text-accent' },
+    { title: 'Paid To Team', subtitle: 'Payouts marked paid', value: currencyLines('paid'), icon: Wallet, accent: 'bg-success/10 text-success' },
+    { title: 'Owed To Team', subtitle: 'Earned but not yet paid', value: currencyLines('owed'), icon: Clock, accent: 'bg-warning/10 text-warning' },
+    { title: 'Deal Group Share', subtitle: 'Commission left after team', value: currencyLines('deal'), icon: Building2, accent: 'bg-primary/8 text-primary' },
     { title: 'Active Agents', value: activeAgents, icon: Users, accent: 'bg-success/10 text-success' },
   ];
 
@@ -159,28 +175,11 @@ const Dashboard = () => {
         {/* Welcome + date range */}
         <div className="flex flex-wrap items-center justify-between gap-3 animate-in-up">
           <p className="text-sm text-muted-foreground">Here's what's happening with your platform today.</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-md border border-border/50 bg-card p-0.5">
-              {(['overall', 'month', 'week'] as PeriodMode[]).map(m => (
-                <Button key={m} size="sm" variant={mode === m ? 'secondary' : 'ghost'}
-                  className="h-8 px-3 text-xs" onClick={() => setMode(m)}>
-                  {m === 'overall' ? 'Overall' : m === 'month' ? 'Monthly' : 'Weekly'}
-                </Button>
-              ))}
-            </div>
-            {mode === 'month' && (
-              <Input type="month" aria-label="Month" className="h-9 w-[160px] text-xs"
-                value={month} onChange={e => setMonth(e.target.value)} />
-            )}
-            {mode === 'week' && (
-              <Input type="week" aria-label="Week" className="h-9 w-[170px] text-xs"
-                value={week} onChange={e => setWeek(e.target.value)} />
-            )}
-          </div>
+          <PeriodPicker mode={mode} month={month} week={week} onMode={setMode} onMonth={setMonth} onWeek={setWeek} />
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {statCards.map((card, i) => (
             <Card key={card.title} className="shadow-card hover:shadow-premium transition-shadow duration-300 border-border/50 animate-in-up" style={{ animationDelay: `${i * 60}ms` }}>
               <CardContent className="p-4">

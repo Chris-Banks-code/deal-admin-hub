@@ -181,6 +181,28 @@ export const periodWindow = (mode: PeriodMode, month: string, week: string): [Da
   return null;
 };
 
+/** Keep only rows whose date (first non-empty field given) falls in the window. */
+export const inWindow = <T,>(rows: T[], win: [Date, Date] | null, ...fields: string[]): T[] => {
+  if (!win) return rows || [];
+  return (rows || []).filter((r: any) => {
+    const v = fields.map(f => r?.[f]).find(Boolean);
+    if (!v) return false;
+    const d = new Date(v);
+    return d >= win[0] && d < win[1];
+  });
+};
+
+/** Team commission paid out (status 'paid'), per currency. */
+export const payoutsPaidByCurrency = (payouts: any[]) => {
+  const out: Record<string, number> = {};
+  (payouts || []).forEach(p => {
+    if (p.status !== 'paid') return;
+    const c = p.currency || 'LRD';
+    out[c] = (out[c] || 0) + num(p.amount);
+  });
+  return out;
+};
+
 export const currentWeekValue = (d = new Date()) => {
   const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - ((d.getDay() + 6) % 7));
   const y = t.getFullYear();
