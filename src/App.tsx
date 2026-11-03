@@ -16,6 +16,7 @@ import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import TargetsPage from "./pages/Targets";
 import SalesPage from "./pages/Sales";
+import CommissionsPage from "./pages/Commissions";
 import ComingSoon from "./pages/ComingSoon";
 import AgentsPage from "./pages/Agents";
 import FinancePage from "./pages/Finance";
@@ -33,6 +34,7 @@ const REAL_ROUTES: Record<string, boolean> = {
   '/agents': true,
   '/sales': true,
   '/finance': true,
+  '/commissions': true,
 };
 
 const App = () => (
