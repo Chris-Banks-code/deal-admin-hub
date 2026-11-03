@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { CURRENCIES, num } from '@/lib/finance';
 
+const table = (name: string) => (supabase.from as any)(name);
+
 export interface PayoutDraft {
   profile_id: string;
   amount: string;
