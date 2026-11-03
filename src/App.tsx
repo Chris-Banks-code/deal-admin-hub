@@ -58,6 +58,7 @@ const App = () => (
             <Route path="/agents" element={<ProtectedRoute module="agents"><AgentsPage /></ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute module="sales"><SalesPage /></ProtectedRoute>} />
             <Route path="/finance" element={<ProtectedRoute module="finance"><FinancePage /></ProtectedRoute>} />
+            <Route path="/commissions" element={<ProtectedRoute module="commissions"><CommissionsPage /></ProtectedRoute>} />
             {/* Legacy alias */}
             <Route path="/clients" element={<Navigate to="/customers" replace />} />
 
