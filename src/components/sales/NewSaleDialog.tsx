@@ -10,8 +10,7 @@ import { Plus, Trash2, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/formatters';
-import { lineCommission, splitCommission } from '@/lib/commissions';
-import { useCommissionRules } from '@/hooks/useCommissionRules';
+import { lineCommission, productCommission, sumCommissionSplits } from '@/lib/commissions';
 
 interface Line {
   product_id: string;
@@ -39,7 +38,6 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: Props) {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<Line[]>([{ product_id: '', quantity: '1' }]);
-  const rules = useCommissionRules();
 
   useEffect(() => {
     if (!open) return;
@@ -80,13 +78,13 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: Props) {
       const unit = Number(p?.unit_price) || 0;
       const subtotal = unit * qty;
       const commission = lineCommission(subtotal, p?.commission_rate);
-      return { line: l, product: p, qty, unit, subtotal, commission };
+      return { line: l, product: p, qty, unit, subtotal, commission, split: productCommission(subtotal, p) };
     });
     const subtotal = rows.reduce((s, r) => s + r.subtotal, 0);
     const commission = rows.reduce((s, r) => s + r.commission, 0);
     const currency = rows.find(r => r.product)?.product?.currency || 'LRD';
-    return { rows, subtotal, commission, split: splitCommission(commission, rules), currency };
-  }, [lines, products, rules]);
+    return { rows, subtotal, commission, split: sumCommissionSplits(rows.flatMap(r => r.split ? [r.split] : [])), currency };
+  }, [lines, products]);
 
   const addLine = () => setLines(l => [...l, { product_id: '', quantity: '1' }]);
   const removeLine = (i: number) => setLines(l => l.filter((_, idx) => idx !== i));
@@ -98,6 +96,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: Props) {
     if (!agentId) { toast({ title: 'Select an agent', variant: 'destructive' }); return; }
     const valid = computed.rows.filter(r => r.product && r.qty > 0);
     if (!valid.length) { toast({ title: 'Add at least one product', variant: 'destructive' }); return; }
+    if (valid.some(r => !r.split)) { toast({ title: 'Set the commission split for each selected product first', variant: 'destructive' }); return; }
+    if (new Set(valid.map(r => r.product.currency || 'LRD')).size > 1) { toast({ title: 'Place USD and LRD products in separate orders', variant: 'destructive' }); return; }
 
     setSaving(true);
     const { data: order, error } = await (supabase.from as any)('sales_orders').insert({
@@ -240,11 +240,11 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: Props) {
             <div className="flex justify-between"><span className="text-muted-foreground">Total commission</span>
               <span className="font-mono">{formatCurrency(computed.commission, computed.currency)}</span></div>
             <Separator className="my-1" />
-            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Agent (60%)</span>
+            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Agent</span>
               <span className="font-mono">{formatCurrency(computed.split.agent, computed.currency)}</span></div>
-            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Supervisor (25%)</span>
+            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Supervisor</span>
               <span className="font-mono">{formatCurrency(computed.split.supervisor, computed.currency)}</span></div>
-            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Operation manager (15%)</span>
+            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Operation manager</span>
               <span className="font-mono">{formatCurrency(computed.split.operation_manager, computed.currency)}</span></div>
           </div>
         </div>
