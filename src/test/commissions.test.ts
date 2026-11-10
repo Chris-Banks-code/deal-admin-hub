@@ -9,6 +9,9 @@ import {
   roleSplitTotals,
   rulesFromRow,
   splitCommission,
+  productRules,
+  productCommission,
+  sumCommissionSplits,
 } from '@/lib/commissions';
 
 const deal = {
@@ -27,6 +30,22 @@ const deal = {
 };
 
 describe('commission split', () => {
+  it('uses a different split for each product in the same order', () => {
+    const first = productCommission(1000, { commission_rate: 10, agent_pct: 40, supervisor_pct: 20, manager_pct: 10 });
+    const second = productCommission(1000, { commission_rate: 20, agent_pct: 50, supervisor_pct: 10, manager_pct: 5 });
+    expect(first).toEqual({ total: 100, agent: 40, supervisor: 20, operation_manager: 10 });
+    expect(second).toEqual({ total: 200, agent: 100, supervisor: 20, operation_manager: 10 });
+    if (!first || !second) throw new Error('Expected configured product splits');
+    expect(sumCommissionSplits([first, second])).toEqual({ total: 300, agent: 140, supervisor: 40, operation_manager: 20 });
+  });
+  it('never falls back to the general split for an unconfigured product', () => {
+    expect(productCommission(1000, { commission_rate: 10 })).toBeNull();
+    expect(productRules({ agent_pct: '', supervisor_pct: 20, manager_pct: 10 })).toBeNull();
+  });
+  it('rejects shares over 100 and allows a remainder for Deal Group', () => {
+    expect(productRules({ agent_pct: 80, supervisor_pct: 20, manager_pct: 10 })).toBeNull();
+    expect(productRules({ agent_pct: 40, supervisor_pct: 20, manager_pct: 10 })).toEqual({ agent_pct: 40, supervisor_pct: 20, manager_pct: 10 });
+  });
   it('splits a commission pot 60 / 25 / 15 by default', () => {
     const s = splitCommission(1000);
     expect(s.agent).toBe(600);

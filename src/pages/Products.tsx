@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
+import { productRules } from '@/lib/commissions';
 
 interface ProductForm {
   product_name: string;
@@ -23,6 +24,9 @@ interface ProductForm {
   unit_price: string;
   currency: string;
   commission_rate: string;
+  agent_pct: string;
+  supervisor_pct: string;
+  manager_pct: string;
   wholesaler_id: string;
   wholesaler_location_id: string;
   stock_quantity: string;
@@ -32,6 +36,7 @@ interface ProductForm {
 const emptyForm: ProductForm = {
   product_name: '', category: '', unit_price: '', currency: 'LRD',
   commission_rate: '4', wholesaler_id: '', wholesaler_location_id: '',
+  agent_pct: '', supervisor_pct: '', manager_pct: '',
   stock_quantity: '0', status: 'available',
 };
 
@@ -83,6 +88,9 @@ const ProductsPage = () => {
     setForm({
       product_name: p.name, category: p.category || '', unit_price: String(p.unit_price ?? ''), currency: p.currency || 'LRD',
       commission_rate: String(p.commission_rate ?? 4),
+      agent_pct: p.agent_pct == null ? '' : String(p.agent_pct),
+      supervisor_pct: p.supervisor_pct == null ? '' : String(p.supervisor_pct),
+      manager_pct: p.manager_pct == null ? '' : String(p.manager_pct),
       wholesaler_id: p.wholesaler_id || '', wholesaler_location_id: p.wholesaler_location_id || '',
       stock_quantity: String(p.stock_quantity || 0), status: p.is_active === false ? 'inactive' : 'available',
     });
@@ -94,6 +102,11 @@ const ProductsPage = () => {
       toast({ title: 'Validation', description: 'Fill required fields', variant: 'destructive' });
       return;
     }
+    const split = productRules(form);
+    if (!split) {
+      toast({ title: 'Enter each commission share; their total cannot exceed 100%', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     const data = {
       name: form.product_name.trim(),
@@ -101,6 +114,7 @@ const ProductsPage = () => {
       unit_price: Number(form.unit_price),
       currency: form.currency,
       commission_rate: Number(form.commission_rate),
+      ...split,
       wholesaler_id: form.wholesaler_id,
       wholesaler_location_id: form.wholesaler_location_id || null,
       stock_quantity: Number(form.stock_quantity) || 0,
@@ -225,6 +239,15 @@ const ProductsPage = () => {
               </div>
             </div>
             <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={form.commission_rate} onChange={e => setForm(f => ({ ...f, commission_rate: e.target.value }))} /></div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {([{ key: 'agent_pct', label: 'Agent share (%)' }, { key: 'supervisor_pct', label: 'Supervisor share (%)' }, { key: 'manager_pct', label: 'Manager share (%)' }] as const).map(field => (
+                <div key={field.key} className="space-y-2">
+                  <Label htmlFor={`product-${field.key}`}>{field.label}</Label>
+                  <Input id={`product-${field.key}`} type="number" min="0" max="100" step="0.01" value={form[field.key]} onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))} />
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">Deal Group share: {productRules(form) ? `${100 - Number(form.agent_pct) - Number(form.supervisor_pct) - Number(form.manager_pct)}%` : '—'}</p>
             <div className="space-y-2">
               <Label>Wholesaler *</Label>
               <Select value={form.wholesaler_id} onValueChange={v => setForm(f => ({ ...f, wholesaler_id: v }))}>

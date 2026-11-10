@@ -876,42 +876,60 @@ export type Database = {
       }
       order_items: {
         Row: {
+          agent_commission: number | null
+          agent_pct: number | null
           commission_amount: number | null
           commission_rate: number | null
           deal_id: string | null
           id: string
+          manager_commission: number | null
+          manager_pct: number | null
           product_id: string | null
           product_name: string | null
           quantity: number | null
           subtotal: number | null
+          supervisor_commission: number | null
+          supervisor_pct: number | null
           unit_price: number | null
           wholesaler_id: string | null
           wholesaler_location_id: string | null
           wholesaler_name: string | null
         }
         Insert: {
+          agent_commission?: number | null
+          agent_pct?: number | null
           commission_amount?: number | null
           commission_rate?: number | null
           deal_id?: string | null
           id?: string
+          manager_commission?: number | null
+          manager_pct?: number | null
           product_id?: string | null
           product_name?: string | null
           quantity?: number | null
           subtotal?: number | null
+          supervisor_commission?: number | null
+          supervisor_pct?: number | null
           unit_price?: number | null
           wholesaler_id?: string | null
           wholesaler_location_id?: string | null
           wholesaler_name?: string | null
         }
         Update: {
+          agent_commission?: number | null
+          agent_pct?: number | null
           commission_amount?: number | null
           commission_rate?: number | null
           deal_id?: string | null
           id?: string
+          manager_commission?: number | null
+          manager_pct?: number | null
           product_id?: string | null
           product_name?: string | null
           quantity?: number | null
           subtotal?: number | null
+          supervisor_commission?: number | null
+          supervisor_pct?: number | null
           unit_price?: number | null
           wholesaler_id?: string | null
           wholesaler_location_id?: string | null
@@ -1050,40 +1068,49 @@ export type Database = {
       }
       products: {
         Row: {
+          agent_pct: number | null
           category: string | null
           commission_rate: number | null
           created_at: string | null
           currency: string
           id: string
           is_active: boolean | null
+          manager_pct: number | null
           name: string
           stock_quantity: number | null
+          supervisor_pct: number | null
           unit_price: number | null
           wholesaler_id: string | null
           wholesaler_location_id: string | null
         }
         Insert: {
+          agent_pct?: number | null
           category?: string | null
           commission_rate?: number | null
           created_at?: string | null
           currency?: string
           id?: string
           is_active?: boolean | null
+          manager_pct?: number | null
           name: string
           stock_quantity?: number | null
+          supervisor_pct?: number | null
           unit_price?: number | null
           wholesaler_id?: string | null
           wholesaler_location_id?: string | null
         }
         Update: {
+          agent_pct?: number | null
           category?: string | null
           commission_rate?: number | null
           created_at?: string | null
           currency?: string
           id?: string
           is_active?: boolean | null
+          manager_pct?: number | null
           name?: string
           stock_quantity?: number | null
+          supervisor_pct?: number | null
           unit_price?: number | null
           wholesaler_id?: string | null
           wholesaler_location_id?: string | null
@@ -1190,45 +1217,63 @@ export type Database = {
       }
       sales_order_items: {
         Row: {
+          agent_commission: number | null
+          agent_pct: number | null
           commission_amount: number | null
           commission_rate: number | null
           created_at: string
           id: string
+          manager_commission: number | null
+          manager_pct: number | null
           product_id: string | null
           product_name: string
           quantity: number
           sales_order_id: string
           subtotal: number
+          supervisor_commission: number | null
+          supervisor_pct: number | null
           supplier_id: string | null
           supplier_location_id: string | null
           unit_price: number
           updated_at: string
         }
         Insert: {
+          agent_commission?: number | null
+          agent_pct?: number | null
           commission_amount?: number | null
           commission_rate?: number | null
           created_at?: string
           id?: string
+          manager_commission?: number | null
+          manager_pct?: number | null
           product_id?: string | null
           product_name: string
           quantity?: number
           sales_order_id: string
           subtotal?: number
+          supervisor_commission?: number | null
+          supervisor_pct?: number | null
           supplier_id?: string | null
           supplier_location_id?: string | null
           unit_price?: number
           updated_at?: string
         }
         Update: {
+          agent_commission?: number | null
+          agent_pct?: number | null
           commission_amount?: number | null
           commission_rate?: number | null
           created_at?: string
           id?: string
+          manager_commission?: number | null
+          manager_pct?: number | null
           product_id?: string | null
           product_name?: string
           quantity?: number
           sales_order_id?: string
           subtotal?: number
+          supervisor_commission?: number | null
+          supervisor_pct?: number | null
           supplier_id?: string | null
           supplier_location_id?: string | null
           unit_price?: number

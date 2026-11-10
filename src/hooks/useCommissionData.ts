@@ -40,7 +40,7 @@ export function useCommissionData(): CommissionData {
       table('commission_bonuses').select('*').order('created_at', { ascending: false }),
       table('commission_rules').select('*').limit(1),
       table('bank_accounts').select('*').order('name'),
-      table('products').select('id, name, category, unit_price, commission_rate, currency, is_active').order('name'),
+      table('products').select('*').order('name'),
     ]);
 
     const deals = dealsR.data || [];

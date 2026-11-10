@@ -59,6 +59,26 @@ export const splitCommission = (total: number, rules: CommissionRules = DEFAULT_
 export const lineCommission = (subtotal: number, rate: number | null | undefined) =>
   subtotal * ((rate ?? 0) / 100);
 
+/** Product splits may leave an unallocated share for Deal Group. No global fallback. */
+export const productRules = (product: any): CommissionRules | null => {
+  if (!product || [product.agent_pct, product.supervisor_pct, product.manager_pct].some(v => v == null || v === '')) return null;
+  const values = [product.agent_pct, product.supervisor_pct, product.manager_pct].map(Number);
+  if (values.some(v => !Number.isFinite(v) || v < 0 || v > 100) || values.reduce((s, v) => s + v, 0) > 100) return null;
+  return { agent_pct: values[0], supervisor_pct: values[1], manager_pct: values[2] };
+};
+
+export const productCommission = (subtotal: number, product: any): CommissionSplit | null => {
+  const rules = productRules(product);
+  return rules ? splitCommission(lineCommission(subtotal, product.commission_rate), rules) : null;
+};
+
+export const sumCommissionSplits = (splits: CommissionSplit[]): CommissionSplit => splits.reduce((sum, split) => ({
+  total: sum.total + split.total,
+  agent: sum.agent + split.agent,
+  supervisor: sum.supervisor + split.supervisor,
+  operation_manager: sum.operation_manager + split.operation_manager,
+}), { total: 0, agent: 0, supervisor: 0, operation_manager: 0 });
+
 /** Payout and bonus records share this status vocabulary. */
 export const LEDGER_STATUSES = ['pending', 'approved', 'paid', 'cancelled'] as const;
 
