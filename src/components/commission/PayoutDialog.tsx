@@ -172,5 +172,3 @@ export function PayoutDialog({ draft, profiles, banks, onClose, onSaved }: Props
     </Dialog>
   );
 }
-
-const table = (name: string) => (supabase.from as any)(name);

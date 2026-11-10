@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/formatters';
 import { lineCommission, splitCommission } from '@/lib/commissions';
+import { useCommissionRules } from '@/hooks/useCommissionRules';
 
 interface Line {
   product_id: string;
@@ -38,6 +39,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: Props) {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<Line[]>([{ product_id: '', quantity: '1' }]);
+  const rules = useCommissionRules();
 
   useEffect(() => {
     if (!open) return;
@@ -83,8 +85,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: Props) {
     const subtotal = rows.reduce((s, r) => s + r.subtotal, 0);
     const commission = rows.reduce((s, r) => s + r.commission, 0);
     const currency = rows.find(r => r.product)?.product?.currency || 'LRD';
-    return { rows, subtotal, commission, split: splitCommission(commission), currency };
-  }, [lines, products]);
+    return { rows, subtotal, commission, split: splitCommission(commission, rules), currency };
+  }, [lines, products, rules]);
 
   const addLine = () => setLines(l => [...l, { product_id: '', quantity: '1' }]);
   const removeLine = (i: number) => setLines(l => l.filter((_, idx) => idx !== i));
