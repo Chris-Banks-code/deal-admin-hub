@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react';
-import { subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Percent } from 'lucide-react';
@@ -7,7 +6,7 @@ import { PeriodPicker } from '@/components/PeriodPicker';
 import { CurrencyTabs } from '@/components/finance/CurrencyTabs';
 import { useCommissionData } from '@/hooks/useCommissionData';
 import { formatCurrency } from '@/lib/formatters';
-import { periodWindow } from '@/lib/finance';
+import { currentWeekValue, inWindow, periodWindow, type PeriodMode } from '@/lib/finance';
 import { commissionPot } from '@/lib/commissions';
 import { CommissionOverview } from '@/components/commission/CommissionOverview';
 import { WalletTab } from '@/components/commission/WalletTab';
@@ -24,8 +23,12 @@ const TABS = [
   { key: 'rules', label: 'Rules' },
 ];
 
-const MONTH_LABEL = (d: Date) =>
-  d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+const MONTH_LABEL = (m: string) => {
+  const [y, mo] = m.split('-').map(Number);
+  const names = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  return `${names[mo - 1] ?? mo} ${y}`;
+};
 
 export default function Commissions() {
   const {
@@ -33,37 +36,41 @@ export default function Commissions() {
   } = useCommissionData();
 
   const [tab, setTab] = useState('overview');
-  const [period, setPeriod] = useState('all');
+  const [mode, setMode] = useState<PeriodMode>('overall');
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [week, setWeek] = useState(currentWeekValue());
   const [currency, setCurrency] = useState('LRD');
   const [draft, setDraft] = useState<PayoutDraft | null>(null);
 
-  const { start, end } = useMemo(() => {
-    const now = new Date();
-    if (period === 'month') return { start: startOfMonth(now), end: endOfMonth(now) };
-    if (period === 'week') return { start: startOfWeek(now), end: endOfWeek(now) };
-    return { start: subDays(now, 3650), end: now };
-  }, [period]);
+  // Everything time-sensitive is narrowed to the chosen period
+  const p = useMemo(() => {
+    const win = periodWindow(mode, month, week);
+    return {
+      orders: inWindow(orders, win, 'created_at'),
+      deals: inWindow(deals, win, 'created_at'),
+      salesOrders: inWindow(salesOrders, win, 'created_at'),
+      payouts: inWindow(payouts, win, 'paid_at', 'created_at'),
+      bonuses: inWindow(bonuses, win, 'created_at'),
+    };
+  }, [orders, deals, salesOrders, payouts, bonuses, mode, month, week]);
 
-  const inWindow = (d: any) => {
-    if (!d) return true;
-    const t = new Date(d).getTime();
-    return t >= start.getTime() && t <= end.getTime();
-  };
+  // Only the currencies actually present in this period are offered
+  const currencies = useMemo(() => {
+    const set = new Set<string>();
+    [...p.orders, ...p.payouts, ...p.bonuses].forEach((r: any) => set.add(r.currency || 'LRD'));
+    return Array.from(set).sort();
+  }, [p]);
 
-  const scoped = useMemo(() => ({
-    orders: orders.filter(o => inWindow(o.created_at)),
-    deals: deals.filter(d => inWindow(d.created_at)),
-    salesOrders: salesOrders.filter(s => inWindow(s.created_at)),
-    payouts: payouts.filter(p => inWindow(p.created_at)),
-    bonuses: bonuses.filter(b => inWindow(b.created_at)),
-  }), [orders, deals, salesOrders, payouts, bonuses, start, end]);
+  useEffect(() => {
+    if (currencies.length && !currencies.includes(currency)) setCurrency(currencies[0]);
+  }, [currencies, currency]);
 
-  const pot = useMemo(() => commissionPot(scoped.orders, items, currency), [scoped.orders, items, currency]);
+  const pot = useMemo(() => commissionPot(p.orders, items, currency), [p.orders, items, currency]);
 
-  const periodLabel = period === 'month'
-    ? MONTH_LABEL(start)
-    : period === 'week'
-      ? `Week of ${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+  const periodLabel = mode === 'month'
+    ? MONTH_LABEL(month)
+    : mode === 'week'
+      ? `Week of ${month ? '' : ''}${week}`
       : 'All time';
 
   return (
@@ -81,8 +88,8 @@ export default function Commissions() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <PeriodPicker value={period} onChange={setPeriod} />
-          <CurrencyTabs value={currency} onChange={setCurrency} />
+          <PeriodPicker mode={mode} month={month} week={week} onMode={setMode} onMonth={setMonth} onWeek={setWeek} />
+          <CurrencyTabs currencies={currencies.length ? currencies : ['LRD']} value={currency} onChange={setCurrency} />
         </div>
       </div>
 
@@ -106,12 +113,12 @@ export default function Commissions() {
         <TabsContent value="overview" className="mt-4">
           <CommissionOverview
             currency={currency}
-            orders={scoped.orders}
+            orders={p.orders}
             items={items}
-            deals={scoped.deals}
-            salesOrders={scoped.salesOrders}
-            payouts={scoped.payouts}
-            bonuses={scoped.bonuses}
+            deals={p.deals}
+            salesOrders={p.salesOrders}
+            payouts={p.payouts}
+            bonuses={p.bonuses}
             profiles={profiles}
           />
         </TabsContent>
@@ -119,10 +126,10 @@ export default function Commissions() {
         <TabsContent value="wallet" className="mt-4">
           <WalletTab
             currency={currency}
-            deals={scoped.deals}
-            salesOrders={scoped.salesOrders}
-            payouts={scoped.payouts}
-            bonuses={scoped.bonuses}
+            deals={p.deals}
+            salesOrders={p.salesOrders}
+            payouts={p.payouts}
+            bonuses={p.bonuses}
             profiles={profiles}
             onPay={setDraft}
           />
@@ -131,10 +138,10 @@ export default function Commissions() {
         <TabsContent value="payouts" className="mt-4">
           <PayoutsTab
             currency={currency}
-            deals={scoped.deals}
-            salesOrders={scoped.salesOrders}
-            payouts={scoped.payouts}
-            bonuses={scoped.bonuses}
+            deals={p.deals}
+            salesOrders={p.salesOrders}
+            payouts={p.payouts}
+            bonuses={p.bonuses}
             profiles={profiles}
             onChanged={refresh}
             onPay={setDraft}
@@ -144,7 +151,7 @@ export default function Commissions() {
         <TabsContent value="bonuses" className="mt-4">
           <BonusesTab
             currency={currency}
-            bonuses={scoped.bonuses}
+            bonuses={p.bonuses}
             profiles={profiles}
             onChanged={refresh}
           />
