@@ -1,172 +1,76 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Percent, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/lib/formatters';
-import { num } from '@/lib/finance';
-import { lineCommission, type CommissionRules } from '@/lib/commissions';
+import { productRules, productCommission, type CommissionRules } from '@/lib/commissions';
 
-interface Props {
-  rules: CommissionRules;
-  products: any[];
-  onChanged: () => void;
-}
-
-const ROLES = [
-  { key: 'agent_pct', label: 'Agent' },
-  { key: 'supervisor_pct', label: 'Supervisor' },
-  { key: 'manager_pct', label: 'Operation Manager' },
+interface Props { rules: CommissionRules; products: any[]; onChanged: () => void }
+const fields = [
+  { key: 'commission_rate', label: 'Sale commission (%)' },
+  { key: 'agent_pct', label: 'Agent share (%)' },
+  { key: 'supervisor_pct', label: 'Supervisor share (%)' },
+  { key: 'manager_pct', label: 'Operation Manager share (%)' },
 ] as const;
 
-/** The rules every new sale is measured against. */
-export function RulesTab({ rules, products, onChanged }: Props) {
+export function RulesTab({ products, onChanged }: Props) {
   const { toast } = useToast();
-  const { profile } = useAuth();
-  const [form, setForm] = useState<CommissionRules>(rules);
-  const [saving, setSaving] = useState(false);
-  const [rate, setRate] = useState<Record<string, string>>({});
-
-  useEffect(() => { setForm(rules); }, [rules]);
-
-  const total = form.agent_pct + form.supervisor_pct + form.manager_pct;
-  const valid = total === 100 && ROLES.every(r => form[r.key] >= 0);
-
-  const saveSplit = async () => {
-    if (!valid) { toast({ title: 'The shares must add up to 100', variant: 'destructive' }); return; }
-    setSaving(true);
-    const payload = {
-      agent_pct: form.agent_pct,
-      supervisor_pct: form.supervisor_pct,
-      manager_pct: form.manager_pct,
-      updated_by: profile?.id ?? null,
-    };
-    const { error } = rules.id
-      ? await (supabase.from as any)('commission_rules').update(payload).eq('id', rules.id)
-      : await (supabase.from as any)('commission_rules').insert(payload);
-    setSaving(false);
+  const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const save = async (product: any, values: Record<string, string>) => {
+    const split = productRules(values);
+    const rate = Number(values.commission_rate);
+    if (!split || !Number.isFinite(rate) || rate < 0 || rate > 100 || values.commission_rate === '') return;
+    setSaving(product.id);
+    const { error } = await supabase.from('products').update({ ...split, commission_rate: rate }).eq('id', product.id);
+    setSaving(null);
     if (error) { toast({ title: 'Could not save', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Commission split updated' });
+    setDrafts(prev => { const next = { ...prev }; delete next[product.id]; return next; });
+    toast({ title: `${product.name} commission saved` });
     onChanged();
   };
-
-  const saveRate = async (product: any) => {
-    const next = num(rate[product.id]);
-    const { error } = await (supabase.from as any)('products')
-      .update({ commission_rate: next }).eq('id', product.id);
-    if (error) { toast({ title: 'Could not save', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: `${product.name} — commission now ${next}%` });
-    onChanged();
-  };
-
-  const preview = useMemo(() => {
-    const sample = 1000;
-    return {
-      total: sample,
-      agent: sample * (form.agent_pct / 100),
-      supervisor: sample * (form.supervisor_pct / 100),
-      manager: sample * (form.manager_pct / 100),
-    };
-  }, [form]);
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base"><Percent className="h-4 w-4" /> How the commission pot is shared</CardTitle>
-          <CardDescription>
-            Every sale earns a commission for Deal Group. That pot is split between the three roles below —
-            whatever is left afterwards is Deal Group's own share.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {ROLES.map(r => (
-              <div key={r.key} className="space-y-1.5">
-                <Label>{r.label}</Label>
-                <Input type="number" min="0" max="100" step="0.5" value={form[r.key]}
-                  onChange={e => setForm({ ...form, [r.key]: num(e.target.value) })} />
-              </div>
-            ))}
+  return <section className="space-y-4">
+    <h2 className="text-base font-semibold">Product commission rules</h2>
+    {products.length === 0 && <p className="text-sm text-muted-foreground">No products yet.</p>}
+    <div className="grid gap-4 lg:grid-cols-2">
+      {products.map(product => {
+        const values = drafts[product.id] ?? Object.fromEntries(fields.map(f => [f.key, product[f.key] == null ? '' : String(product[f.key])]));
+        const split = productRules(values);
+        const rate = Number(values.commission_rate);
+        const valid = split && values.commission_rate !== '' && Number.isFinite(rate) && rate >= 0 && rate <= 100;
+        const preview = productCommission(Number(product.unit_price || 0), values);
+        const share = split ? 100 - split.agent_pct - split.supervisor_pct - split.manager_pct : null;
+        return <article key={product.id} className="rounded-lg border border-border bg-card p-4 space-y-4">
+          <div className="flex flex-wrap justify-between gap-2">
+            <h3 className="font-medium">{product.name}</h3>
+            <span className="font-mono text-sm text-muted-foreground">{formatCurrency(product.unit_price, product.currency)}</span>
           </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {fields.map(f => <div key={f.key} className="space-y-1.5">
+              <Label htmlFor={`${product.id}-${f.key}`}>{f.label}</Label>
+              <Input id={`${product.id}-${f.key}`} type="number" min="0" max="100" step="0.01" value={values[f.key]}
+                onChange={e => setDrafts(prev => ({ ...prev, [product.id]: { ...values, [f.key]: e.target.value } }))} />
+            </div>)}
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className={total === 100 ? 'border-success/30 text-success' : 'border-destructive/30 text-destructive'}>
-                Adds up to {total}%
-              </Badge>
-              <span className="text-xs text-muted-foreground">Must be exactly 100%</span>
-            </div>
-            <Button className="gap-2" onClick={saveSplit} disabled={saving || !valid}>
-              <Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save split'}
+            <span className={split ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>
+              {share == null ? 'Enter all shares; total cannot exceed 100%.' : `Deal Group share: ${share}%`}
+            </span>
+            <Button size="sm" onClick={() => save(product, values)} disabled={!valid || saving === product.id || !drafts[product.id]} className="gap-2">
+              <Save className="h-4 w-4" />{saving === product.id ? 'Saving…' : 'Save'}
             </Button>
           </div>
-
-          <div className="rounded-lg border border-border/50 bg-muted/30 p-3 text-sm">
-            <p className="text-muted-foreground">On a commission of {formatCurrency(preview.total, 'LRD')}:</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-3 font-mono text-sm">
-              <span>Agent {formatCurrency(preview.agent, 'LRD')}</span>
-              <span>Supervisor {formatCurrency(preview.supervisor, 'LRD')}</span>
-              <span>Operation Manager {formatCurrency(preview.manager, 'LRD')}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Commission rate per product</CardTitle>
-          <CardDescription>
-            The percentage Deal Group earns when that product sells. Rates are charged in the product's own currency.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Price</TableHead>
-                <TableHead className="text-right">Commission</TableHead>
-                <TableHead className="text-right">Commission on one unit</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">No products yet.</TableCell></TableRow>
-              )}
-              {products.map(p => {
-                const current = rate[p.id] ?? String(num(p.commission_rate));
-                return (
-                  <TableRow key={p.id}>
-                    <TableCell className="text-sm font-medium">{p.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{p.category || '—'}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatCurrency(num(p.unit_price), p.currency)}</TableCell>
-                    <TableCell className="text-right">
-                      <Input className="h-8 w-24 text-right font-mono text-sm" type="number" min="0" max="100" step="0.5"
-                        value={current} onChange={e => setRate({ ...rate, [p.id]: e.target.value })} />
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                      {formatCurrency(lineCommission(num(p.unit_price), num(current)), p.currency)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" variant="outline" disabled={num(current) === num(p.commission_rate)}
-                        onClick={() => saveRate(p)}>Save</Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          {preview && <dl className="grid grid-cols-2 gap-2 text-xs border-t border-border pt-3">
+            <dt className="text-muted-foreground">Commission per unit</dt><dd className="text-right font-mono">{formatCurrency(preview.total, product.currency)}</dd>
+            <dt className="text-muted-foreground">Agent</dt><dd className="text-right font-mono">{formatCurrency(preview.agent, product.currency)}</dd>
+            <dt className="text-muted-foreground">Supervisor</dt><dd className="text-right font-mono">{formatCurrency(preview.supervisor, product.currency)}</dd>
+            <dt className="text-muted-foreground">Operation Manager</dt><dd className="text-right font-mono">{formatCurrency(preview.operation_manager, product.currency)}</dd>
+          </dl>}
+        </article>;
+      })}
     </div>
-  );
+  </section>;
 }
