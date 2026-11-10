@@ -70,7 +70,7 @@ export default function Commissions() {
   const periodLabel = mode === 'month'
     ? MONTH_LABEL(month)
     : mode === 'week'
-      ? `Week of ${week.split('-W')[0]}`
+      ? `Week ${week.split('-W')[1]}, ${week.split('-W')[0]}`
       : 'All time';
 
   return (
