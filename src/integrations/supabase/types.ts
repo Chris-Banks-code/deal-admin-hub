@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -340,6 +358,79 @@ export type Database = {
           },
         ]
       }
+      commission_allocations: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          deal_id: string
+          id: string
+          order_item_id: string
+          paid_at: string | null
+          pct: number
+          product_id: string | null
+          profile_id: string | null
+          recipient_role: string
+          status: string
+          units: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          deal_id: string
+          id?: string
+          order_item_id: string
+          paid_at?: string | null
+          pct: number
+          product_id?: string | null
+          profile_id?: string | null
+          recipient_role: string
+          status?: string
+          units: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          deal_id?: string
+          id?: string
+          order_item_id?: string
+          paid_at?: string | null
+          pct?: number
+          product_id?: string | null
+          profile_id?: string | null
+          recipient_role?: string
+          status?: string
+          units?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_allocations_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_allocations_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_allocations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_bonuses: {
         Row: {
           amount: number
@@ -548,10 +639,12 @@ export type Database = {
           commission_amount: number | null
           commission_rate: number | null
           created_at: string | null
+          creator_type: string | null
           currency: string | null
           deal_number: string | null
           deal_value: number | null
           delivered_at: string | null
+          delivered_by: string | null
           delivery_address: string | null
           delivery_date: string | null
           has_multiple_products: boolean | null
@@ -562,8 +655,10 @@ export type Database = {
           product_commission_rate: number | null
           product_name: string | null
           quantity: number | null
+          region: string | null
           retailer_id: string | null
           retailer_name: string | null
+          retailer_owner_id: string | null
           status: string | null
           supervisor_commission: number | null
           supervisor_id: string | null
@@ -578,10 +673,12 @@ export type Database = {
           commission_amount?: number | null
           commission_rate?: number | null
           created_at?: string | null
+          creator_type?: string | null
           currency?: string | null
           deal_number?: string | null
           deal_value?: number | null
           delivered_at?: string | null
+          delivered_by?: string | null
           delivery_address?: string | null
           delivery_date?: string | null
           has_multiple_products?: boolean | null
@@ -592,8 +689,10 @@ export type Database = {
           product_commission_rate?: number | null
           product_name?: string | null
           quantity?: number | null
+          region?: string | null
           retailer_id?: string | null
           retailer_name?: string | null
+          retailer_owner_id?: string | null
           status?: string | null
           supervisor_commission?: number | null
           supervisor_id?: string | null
@@ -608,10 +707,12 @@ export type Database = {
           commission_amount?: number | null
           commission_rate?: number | null
           created_at?: string | null
+          creator_type?: string | null
           currency?: string | null
           deal_number?: string | null
           deal_value?: number | null
           delivered_at?: string | null
+          delivered_by?: string | null
           delivery_address?: string | null
           delivery_date?: string | null
           has_multiple_products?: boolean | null
@@ -622,8 +723,10 @@ export type Database = {
           product_commission_rate?: number | null
           product_name?: string | null
           quantity?: number | null
+          region?: string | null
           retailer_id?: string | null
           retailer_name?: string | null
+          retailer_owner_id?: string | null
           status?: string | null
           supervisor_commission?: number | null
           supervisor_id?: string | null
@@ -641,6 +744,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deals_delivered_by_fkey"
+            columns: ["delivered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deals_operation_manager_id_fkey"
             columns: ["operation_manager_id"]
             isOneToOne: false
@@ -652,6 +762,13 @@ export type Database = {
             columns: ["retailer_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_retailer_owner_id_fkey"
+            columns: ["retailer_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -887,6 +1004,7 @@ export type Database = {
           product_id: string | null
           product_name: string | null
           quantity: number | null
+          quantity_delivered: number | null
           subtotal: number | null
           supervisor_commission: number | null
           supervisor_pct: number | null
@@ -907,6 +1025,7 @@ export type Database = {
           product_id?: string | null
           product_name?: string | null
           quantity?: number | null
+          quantity_delivered?: number | null
           subtotal?: number | null
           supervisor_commission?: number | null
           supervisor_pct?: number | null
@@ -927,6 +1046,7 @@ export type Database = {
           product_id?: string | null
           product_name?: string | null
           quantity?: number | null
+          quantity_delivered?: number | null
           subtotal?: number | null
           supervisor_commission?: number | null
           supervisor_pct?: number | null
@@ -1066,6 +1186,71 @@ export type Database = {
           },
         ]
       }
+      product_commission_rules: {
+        Row: {
+          admin_pct: number
+          created_at: string
+          creator_pct: number
+          currency: string
+          delivery_pct: number
+          finance_pct: number
+          hr_pct: number
+          id: string
+          operations_pct: number
+          pool_amount: number
+          product_id: string
+          regional_pct: number
+          supervisor_pct: number
+          unit: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          admin_pct?: number
+          created_at?: string
+          creator_pct?: number
+          currency?: string
+          delivery_pct?: number
+          finance_pct?: number
+          hr_pct?: number
+          id?: string
+          operations_pct?: number
+          pool_amount?: number
+          product_id: string
+          regional_pct?: number
+          supervisor_pct?: number
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          admin_pct?: number
+          created_at?: string
+          creator_pct?: number
+          currency?: string
+          delivery_pct?: number
+          finance_pct?: number
+          hr_pct?: number
+          id?: string
+          operations_pct?: number
+          pool_amount?: number
+          product_id?: string
+          regional_pct?: number
+          supervisor_pct?: number
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_commission_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           agent_pct: number | null
@@ -1134,34 +1319,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          agent_type: string | null
           created_at: string | null
           email: string | null
           full_name: string | null
           id: string
           phone: string | null
           push_token: string | null
+          region: string | null
           role: string | null
           status: string | null
           supervisor_id: string | null
         }
         Insert: {
+          agent_type?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id: string
           phone?: string | null
           push_token?: string | null
+          region?: string | null
           role?: string | null
           status?: string | null
           supervisor_id?: string | null
         }
         Update: {
+          agent_type?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
           push_token?: string | null
+          region?: string | null
           role?: string | null
           status?: string | null
           supervisor_id?: string | null
@@ -1170,6 +1361,65 @@ export type Database = {
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
             columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      retailer_ownership_log: {
+        Row: {
+          approved_by: string | null
+          client_id: string
+          created_at: string
+          id: string
+          new_agent_id: string
+          previous_agent_id: string | null
+          reason: string
+        }
+        Insert: {
+          approved_by?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          new_agent_id: string
+          previous_agent_id?: string | null
+          reason: string
+        }
+        Update: {
+          approved_by?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          new_agent_id?: string
+          previous_agent_id?: string | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retailer_ownership_log_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retailer_ownership_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retailer_ownership_log_new_agent_id_fkey"
+            columns: ["new_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retailer_ownership_log_previous_agent_id_fkey"
+            columns: ["previous_agent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1485,6 +1735,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      reassign_retailer: {
+        Args: { _client: string; _new_agent: string; _reason: string }
+        Returns: undefined
+      }
+      refresh_deal_allocations: { Args: { _deal: string }; Returns: undefined }
     }
     Enums: {
       app_role:

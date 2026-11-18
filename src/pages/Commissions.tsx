@@ -13,6 +13,8 @@ import { WalletTab } from '@/components/commission/WalletTab';
 import { PayoutsTab } from '@/components/commission/PayoutsTab';
 import { BonusesTab } from '@/components/commission/BonusesTab';
 import { RulesTab } from '@/components/commission/RulesTab';
+import { PoolRulesSection } from '@/components/commission/PoolRulesSection';
+import { SalesRecordsTab } from '@/components/commission/SalesRecordsTab';
 import { PayoutDialog, type PayoutDraft } from '@/components/commission/PayoutDialog';
 
 const TABS = [
@@ -21,6 +23,7 @@ const TABS = [
   { key: 'payouts', label: 'Payouts' },
   { key: 'bonuses', label: 'Bonuses' },
   { key: 'rules', label: 'Rules' },
+  { key: 'records', label: 'Sales records' },
 ];
 
 const MONTH_LABEL = (m: string) => {
@@ -158,8 +161,10 @@ export default function Commissions() {
         </TabsContent>
 
         <TabsContent value="rules" className="mt-4">
-          <RulesTab rules={rules} products={products} onChanged={refresh} />
+          <div className="space-y-6"><PoolRulesSection products={products} />
+          <RulesTab rules={rules} products={products} onChanged={refresh} /></div>
         </TabsContent>
+        <TabsContent value="records" className="mt-4"><SalesRecordsTab profiles={profiles} /></TabsContent>
       </Tabs>
 
       <PayoutDialog
