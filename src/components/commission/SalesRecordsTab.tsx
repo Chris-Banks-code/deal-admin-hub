@@ -28,7 +28,7 @@ export function SalesRecordsTab({ profiles }: { profiles: any[] }) {
   const rows = useMemo(() => deals.filter(d => allocs.some(a => a.deal_id === d.id)).map(d => {
     const a = allocs.filter(x => x.deal_id === d.id); const sum = (f: (x: any) => boolean) => a.filter(f).reduce((s, x) => s + Number(x.amount), 0);
     const its = items.filter(i => i.deal_id === d.id);
-    return { d, its, cur: a[0]?.currency, pending: sum(x => x.status === 'pending'), payable: sum(x => x.status === 'payable'), paid: sum(x => x.status === 'paid'), deal: sum(x => x.role === 'deal' || x.recipient_role === 'deal') };
+    return { d, its, cur: a[0]?.currency, pending: sum(x => x.status === 'pending'), payable: sum(x => x.status === 'payable'), paid: sum(x => x.status === 'paid'), deal: sum(x => x.recipient_role === 'deal') };
   }), [deals, allocs, items]);
   const reassign = async () => {
     const { error } = await db.rpc('reassign_retailer', { _client: form.client, _new_agent: form.agent, _reason: form.reason });
