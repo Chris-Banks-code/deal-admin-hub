@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_product_pool_to_legacy() FROM anon, authenticated, public;

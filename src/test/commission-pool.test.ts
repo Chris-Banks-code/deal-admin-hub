@@ -16,6 +16,14 @@ describe('commission pool scenarios', () => {
   });
   it('every scenario totals 100%', () => [0, 1, 2, 3].forEach(i => expect(total(i)).toBe(100)));
   it('uses delivered units x pool', () => expect(allocatePool(rule, SCENARIOS[0].actors, 4)[0].amount).toBe(7));
+  it('calculates the agent fields for 20 Mineral Water sacks', () => {
+    const allocations = allocatePool(rule, SCENARIOS[1].actors, 20);
+    expect(allocations.reduce((sum, row) => sum + row.amount, 0)).toBe(100);
+    expect(allocations.find(row => row.role === 'creator')?.amount).toBe(35);
+    expect(allocations.find(row => row.role === 'supervisor')?.amount).toBe(5);
+    expect(allocations.find(row => row.role === 'operations')?.amount).toBe(5);
+    expect(allocations.find(row => row.role === 'deal')?.amount).toBe(33);
+  });
   it('changing pool keeps percentages', () => expect(allocatePool({ ...rule, pool_amount: 10 }, SCENARIOS[0].actors, 1)[0].pct).toBe(35));
   it('blocks shares over 100%', () => expect(isValidPoolRule({ ...rule, admin_pct: 40 })).toBe(false));
 });

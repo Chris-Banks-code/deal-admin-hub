@@ -1740,6 +1740,10 @@ export type Database = {
         Returns: undefined
       }
       refresh_deal_allocations: { Args: { _deal: string }; Returns: undefined }
+      sync_deal_commission_from_allocations: {
+        Args: { _deal: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
